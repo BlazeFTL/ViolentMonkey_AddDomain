@@ -29,6 +29,18 @@ jobs:
       - name: Apply patches
         run: python3 apply_patches_addmatch.py
 
+      - name: Patch manifest for AMO compliance
+        run: |
+          python3 - <<'EOF'
+          import json, pathlib
+          p = pathlib.Path('src/manifest.json')
+          m = json.loads(p.read_text())
+          gecko = m.setdefault('browser_specific_settings', {}).setdefault('gecko', {})
+          gecko['strict_min_version'] = '79.0'
+          gecko['data_collection_permissions'] = {'none': True}
+          p.write_text(json.dumps(m, indent=2))
+          EOF
+
       - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v6
