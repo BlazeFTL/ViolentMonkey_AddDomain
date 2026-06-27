@@ -3,7 +3,7 @@ name: Build ViolentMonkey Fork
 on:
   workflow_dispatch:
   push:
-    branches: [master]
+    branches: [master, signed]
     tags-ignore:
       - 'v*'
     paths-ignore:
