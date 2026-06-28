@@ -16,9 +16,39 @@ from pathlib import Path
 # Each patch: (file, old, new). `old` must appear EXACTLY once in `file`.
 PATCHES = [
     (
-        'src/common/ui/index.js',
-        r"""import { createApp, h } from 'vue';""",
-        r"""import { createApp, h, reactive } from 'vue';""",
+        'src/common/ui/style/style.css',
+        r"""@media (max-width: 319px) {
+  .hidden-xs {
+    display: none !important;
+  }
+}""",
+        r"""@media (max-width: 319px) {
+  .hidden-xs {
+    display: none !important;
+  }
+}
+
+.vm-toast {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  padding: .5rem 1rem;
+  font-size: 13px;
+  line-height: 1.3;
+  text-align: center;
+  /* same peachy warning tint as the popup's existing failure-reason banner */
+  background: hsl(30, 100%, 88%);
+  color: #432;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .25);
+  transform: translateY(-100%);
+  transition: transform .2s ease;
+  pointer-events: none;
+}
+.vm-toast.show {
+  transform: translateY(0);
+}""",
     ),
     (
         'src/common/ui/index.js',
@@ -27,6 +57,51 @@ PATCHES = [
         r"""export function showMessage(message) {
   message = reactive(message);
   const modal = Modal.show(() => h(Message, {""",
+    ),
+    (
+        'src/common/ui/index.js',
+        r"""  if (!message.buttons) {
+    const timer = setInterval(() => {
+      if (!document.querySelector('.vl-modal .modal-content:hover')) {
+        clearInterval(timer);
+        modal.close();
+      }
+    }, message.timeout || 2000);
+  }
+}""",
+        r"""  if (!message.buttons) {
+    const timer = setInterval(() => {
+      if (!document.querySelector('.vl-modal .modal-content:hover')) {
+        clearInterval(timer);
+        modal.close();
+      }
+    }, message.timeout || 2000);
+  }
+}
+
+let toastEl;
+let toastTimer;
+/**
+ * A simple top banner, NOT a modal: no backdrop dim, no focus trap, just a flat bar
+ * that slides in over the top of the page and auto-dismisses. For brief confirmations
+ * (e.g. "Added to @match.") where `showMessage`'s dialog styling is overkill.
+ * @param {string} text
+ */
+export function showToast(text) {
+  if (!toastEl) {
+    toastEl = document.createElement('div');
+    toastEl.className = 'vm-toast';
+    document.body.appendChild(toastEl);
+  }
+  clearTimeout(toastTimer);
+  toastEl.textContent = text;
+  toastEl.classList.remove('show');
+  void toastEl.offsetHeight; // restart the slide-in transition even if already showing
+  toastEl.classList.add('show');
+  toastTimer = setTimeout(() => {
+    toastEl.classList.remove('show');
+  }, 2500);
+}""",
     ),
     (
         'src/common/ui/message.vue',
@@ -392,7 +467,11 @@ async function onAddMatchSave(item, btn) {
   const pattern = btn || addMatchInput.value.trim();
   if (!pattern) return;
   const res = await sendCmdDirectly('AddScriptMatch', { id: item.props.id, pattern });
-  if (res.duplicate) note.value = i18n('msgMatchExists');
+  if (res.duplicate) {
+    note.value = i18n('msgMatchExists');
+  } else {
+    showToast(i18n('msgMatchAdded'));
+  }
   onAddMatchClose(item);
   checkReload();
 }""",
@@ -485,9 +564,10 @@ const focusedItem = ref();""",
         <button v-text="i18n('buttonClear')" @click="matchInput = ''; matchNote = ''"/>
         <button v-text="i18n('buttonCancel')" @click="addMatchOpen = false"/>
       </div>
-      <details class="mb-1" :open="!!matchNote">
+      <div class="add-match-note" v-if="matchNote" v-text="matchNote"/>
+      <details class="mb-1">
         <summary><icon name="info"/></summary>
-        <small v-text="matchNote || i18n('menuAddMatchHint')" :class="{ note: matchNote }"/>
+        <small v-text="i18n('menuAddMatchHint')"/>
       </details>
     </div>
   </div>
@@ -501,7 +581,9 @@ const focusedItem = ref();""",
     (
         'src/options/views/script-item.vue',
         r"""import { EXTERNAL_LINK_PROPS, getActiveElement, showConfirmation } from '@/common/ui';""",
-        r"""import { EXTERNAL_LINK_PROPS, getActiveElement, showConfirmation, showMessage } from '@/common/ui';""",
+        r"""import {
+  EXTERNAL_LINK_PROPS, getActiveElement, showConfirmation, showMessage, showToast,
+} from '@/common/ui';""",
     ),
     (
         'src/options/views/script-item.vue',
@@ -562,7 +644,7 @@ async function onAddMatchModal() {
             showMessage({ text: i18n('msgMatchExists') });
             return false;
           }
-          showMessage({ text: i18n('msgMatchAdded') }); // auto-dismissing toast (no buttons)
+          showToast(i18n('msgMatchAdded'));
           return true;
         },
       },
@@ -590,7 +672,7 @@ const onAddMatchSave = async btn => {
     matchNote.value = i18n('msgMatchExists');
   } else {
     addMatchOpen.value = false;
-    showMessage({ text: i18n('msgMatchAdded') }); // auto-dismissing toast (no buttons)
+    showToast(i18n('msgMatchAdded'));
   }
 };
 const onUpdate = async evt => {""",
@@ -644,9 +726,12 @@ const onUpdate = async evt => {""",
   }
   small {
     color: var(--fill-7);
-    &.note {
-      color: red;
-    }
+  }
+  .add-match-note {
+    padding: .3rem .5rem;
+    border-radius: 2px;
+    background: hsl(0, 100%, 95%);
+    color: #c00;
   }
 }
 </style>""",
@@ -818,6 +903,11 @@ msgMatchExists:""",
         r"""let updateThrottle;""",
         r"""let updateThrottle;
 const msgTimers = new Map(); // per-script-id timer to auto-clear a transient script.message""",
+    ),
+    (
+        'src/popup/views/app.vue',
+        r"""import { EXTERNAL_LINK_PROPS, getActiveElement } from '@/common/ui';""",
+        r"""import { EXTERNAL_LINK_PROPS, getActiveElement, showToast } from '@/common/ui';""",
     ),
 ]
 
