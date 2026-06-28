@@ -16,6 +16,11 @@ from pathlib import Path
 # Each patch: (file, old, new). `old` must appear EXACTLY once in `file`.
 PATCHES = [
     (
+        'src/common/ui/index.js',
+        r"""import { createApp, h } from 'vue';""",
+        r"""import { createApp, h, reactive } from 'vue';""",
+    ),
+    (
         'src/common/ui/style/style.css',
         r"""@media (max-width: 319px) {
   .hidden-xs {
