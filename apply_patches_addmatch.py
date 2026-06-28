@@ -357,8 +357,11 @@ function onAddMatch(item, evt) {
   focusAddMatchInput(item);
   sendCmdDirectly('GetTabDomain', item.pageUrl).then(({ domain, anyTld } = {}) => {
     if (addMatchId.value !== id) return; // closed or switched to another item meanwhile
-    addMatchInput.value = domain || '';
-    addMatchChips.value = domain ? { domain, sub: `*.${domain}`, tld: anyTld } : {};
+    const sub = domain && `*.${domain}`;
+    // Default to the wildcard-subdomain form: it's almost always what's wanted,
+    // and the bare-domain/TLD-wildcard forms remain one tap away as chips.
+    addMatchInput.value = sub || '';
+    addMatchChips.value = domain ? { domain, sub, tld: anyTld } : {};
   });
 }
 async function focusAddMatchInput(item) {
@@ -470,7 +473,7 @@ const focusedItem = ref();""",
         <button v-text="i18n('buttonClear')" @click="matchInput = ''; matchNote = ''"/>
         <button v-text="i18n('buttonCancel')" @click="addMatchOpen = false"/>
       </div>
-      <details class="mb-1">
+      <details class="mb-1" :open="!!matchNote">
         <summary><icon name="info"/></summary>
         <small v-text="matchNote || i18n('menuAddMatchHint')" :class="{ note: matchNote }"/>
       </details>
@@ -512,10 +515,14 @@ async function onAddMatchToggle() {
     matchInput.value = '';
     matchNote.value = '';
     const res = await sendCmdDirectly('GetLastPopupDomain');
+    const sub = res?.domain && `*.${res.domain}`;
     tabInfo.value = res?.domain ? {
       domain: res.domain,
-      chips: { domain: res.domain, sub: `*.${res.domain}`, tld: res.anyTld },
+      chips: { domain: res.domain, sub, tld: res.anyTld },
     } : {};
+    // Default to the wildcard-subdomain form: it's almost always what's wanted,
+    // and the bare-domain/TLD-wildcard forms remain one tap away as chips.
+    matchInput.value = sub || '';
   }
 }
 async function onAddMatchModal() {
@@ -523,13 +530,13 @@ async function onAddMatchModal() {
   const initial = await sendCmdDirectly('GetLastPopupDomain');
   const message = reactive({
     text: `${cache.value.name}\n\n${i18n('menuAddMatchModal')}`,
-    input: initial?.domain || '',
+    input: initial?.domain ? `*.${initial.domain}` : '',
     buttons: [
       {
         text: i18n('buttonCurrentTab'),
         async onClick() {
           const res = await sendCmdDirectly('GetLastPopupDomain');
-          message.input = res?.domain || '';
+          message.input = res?.domain ? `*.${res.domain}` : '';
           return false;
         },
       },
@@ -559,7 +566,7 @@ async function onAddMatchModal() {
   showMessage(message);
 }
 const onAddMatchCurrentTab = () => {
-  if (tabInfo.value.domain) matchInput.value = tabInfo.value.domain;
+  if (tabInfo.value.chips?.sub) matchInput.value = tabInfo.value.chips.sub;
   matchNote.value = '';
 };
 const onAddMatchSave = async btn => {
@@ -718,7 +725,7 @@ menuAddMatchHint:""",
         r"""msgMissingResources:""",
         r"""msgMatchExists:
   description: Shown when the @match pattern being added already exists in the script.
-  message: That pattern is already in @match.
+  message: That domain is already in @match.
 msgMissingResources:""",
     ),
     (
@@ -766,6 +773,23 @@ msgMatchExists:""",
       color: #f00;
     }
   }""",
+    ),
+    (
+        'src/options/index.js',
+        r"""    const removed = update.config?.removed;
+    const oldTags = oldScript ? getUniqTags(oldScript) : '';
+    const [sizes] = await sendCmdDirectly('GetSizes', [where.id]);
+    Object.assign(script, update);
+    if (script.error && !update.error) script.error = null;
+    initScript(script, sizes, code);""",
+        r"""    const removed = update.config?.removed;
+    const oldTags = oldScript ? getUniqTags(oldScript) : '';
+    // Apply `update` (e.g. script.message) right away so the row reflects it instantly;
+    // sizes are fetched after and aren't needed for that to be visible.
+    Object.assign(script, update);
+    if (script.error && !update.error) script.error = null;
+    const [sizes] = await sendCmdDirectly('GetSizes', [where.id]);
+    initScript(script, sizes, code);""",
     ),
 ]
 
