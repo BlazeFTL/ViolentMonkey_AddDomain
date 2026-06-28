@@ -168,7 +168,7 @@ function checkMetaItemErrors(parts, index, errors) {""",
       id,
       code: result.code,
       bumpDate: true,
-      message: i18n('msgMatchAdded', wrapped),
+      message: i18n('msgMatchAdded'),
     });
     res.pattern = wrapped;
     return res;
@@ -260,7 +260,7 @@ addOwnCommands({
           }""",
         r"""            'extras-shown': extras === item,
             'excludes-shown': item.excludes,
-            'add-match-shown': item.addMatch,
+            'add-match-shown': addMatchId === item.props.id,
           }""",
     ),
     (
@@ -313,12 +313,12 @@ addOwnCommands({
               </small>
             </details>
           </div>
-          <div v-if="item.addMatch" class="add-match-menu mb-1c mr-1c">
-            <button v-for="(val, key) in item.addMatch[1]" :key
+          <div v-if="addMatchId === item.props.id" class="add-match-menu mb-1c mr-1c">
+            <button v-for="(val, key) in addMatchChips" :key
                     v-text="val" class="ellipsis" :title="val"
                     @click="onAddMatchSave(item, val)"/>
-            <input v-model="item.addMatch[0]" spellcheck="false"
-                   placeholder="example.com"
+            <input v-model="addMatchInput" spellcheck="false"
+                   :placeholder="i18n('menuAddMatchPlaceholder')"
                    @keypress.enter="onAddMatchSave(item)"
                    @keydown.esc.exact.stop.prevent="onAddMatchClose(item)"/>
             <button v-text="i18n('buttonOK')" @click="onAddMatchSave(item)"/>
@@ -341,37 +341,62 @@ addOwnCommands({
   item.excludes = null;
   focus(item);
 }
-async function onAddMatch(item, evt) {
+function onAddMatch(item, evt) {
+  evt.stopPropagation(); // mirrors showExtras: don't let the root @click close us right back
   item.el = evt.currentTarget.closest(SCRIPT_CLS) || item.el;
-  const url = item.pageUrl;
-  const { domain, anyTld } = await sendCmdDirectly('GetTabDomain', url);
-  item.addMatch = [
-    domain || '',
-    domain ? { domain, sub: `*.${domain}`, tld: anyTld } : {},
-  ];
+  const { id } = item.props;
+  if (addMatchId.value === id) { // clicking + again on the already-open item just closes it
+    onAddMatchClose(item);
+    return;
+  }
+  // Open IMMEDIATELY and synchronously: the panel's visibility must never depend on an
+  // awaited round-trip finishing, or a slow/late background response can leave it stuck closed.
+  addMatchInput.value = '';
+  addMatchChips.value = {};
+  addMatchId.value = id;
+  focusAddMatchInput(item);
+  sendCmdDirectly('GetTabDomain', item.pageUrl).then(({ domain, anyTld } = {}) => {
+    if (addMatchId.value !== id) return; // closed or switched to another item meanwhile
+    addMatchInput.value = domain || '';
+    addMatchChips.value = domain ? { domain, sub: `*.${domain}`, tld: anyTld } : {};
+  });
+}
+async function focusAddMatchInput(item) {
   await makePause(); // $nextTick runs too early
-  item.el.querySelector('.add-match-menu input').focus();
+  item.el?.querySelector('.add-match-menu input')?.focus();
 }
 function onAddMatchClose(item) {
-  item.addMatch = null;
+  addMatchId.value = null;
   focus(item);
 }
 function onAddMatchClear(item) {
-  item.addMatch[0] = '';
-  const input = item.el?.querySelector('.add-match-menu input');
-  if (input) {
-    input.value = '';
-    input.focus();
-  }
+  addMatchInput.value = '';
+  item.el?.querySelector('.add-match-menu input')?.focus();
 }
 async function onAddMatchSave(item, btn) {
-  const pattern = btn || item.addMatch[0].trim();
+  const pattern = btn || addMatchInput.value.trim();
   if (!pattern) return;
   const res = await sendCmdDirectly('AddScriptMatch', { id: item.props.id, pattern });
   if (res.duplicate) note.value = i18n('msgMatchExists');
   onAddMatchClose(item);
   checkReload();
 }""",
+    ),
+    (
+        'src/popup/views/app.vue',
+        r"""const activeMenu = ref(SCRIPTS);
+const showSettings = ref();
+const extras = ref();
+const focusedItem = ref();""",
+        r"""const activeMenu = ref(SCRIPTS);
+const showSettings = ref();
+const extras = ref();
+/** id of the script whose add-match panel is open (not the item itself: comparing
+ * by a primitive id can't go stale, unlike comparing object references). */
+const addMatchId = ref(null);
+const addMatchInput = ref('');
+const addMatchChips = ref({});
+const focusedItem = ref();""",
     ),
     (
         'src/options/views/script-item.vue',
@@ -436,7 +461,7 @@ async function onAddMatchSave(item, btn) {
                 @click="onAddMatchSave(val)"/>
       </div>
       <input v-model="matchInput" spellcheck="false"
-             placeholder="example.com"
+             :placeholder="i18n('menuAddMatchPlaceholder')"
              @keypress.enter="onAddMatchSave()"
              @keydown.esc.exact.stop.prevent="addMatchOpen = false"/>
       <div class="add-match-buttons">
@@ -683,6 +708,9 @@ menuAddMatchHint:""",
 menuAddMatchModal:
   description: Description line shown in the table-view "add domain" modal, under the script name.
   message: Add a domain to @match...
+menuAddMatchPlaceholder:
+  description: Placeholder text for the empty add-domain input box (not a real example value).
+  message: Enter domain
 menuAddMatchHint:""",
     ),
     (
@@ -697,9 +725,47 @@ msgMissingResources:""",
         '_locales/en/messages.yml',
         r"""msgMatchExists:""",
         r"""msgMatchAdded:
-  description: Shown after a new @match pattern is successfully added. $1 is the pattern.
-  message: Added $1 to @match.
+  description: Shown after a new @match pattern is successfully added.
+  message: Added to @match.
 msgMatchExists:""",
+    ),
+    (
+        'src/options/views/script-item.vue',
+        r"""        <!-- Using v-if to actually hide it because FF is slow to apply :not(:empty) CSS -->
+        <div class="script-message" v-if="script.message" v-text="script.message"
+             :title="script.error"/>""",
+        r"""        <!-- Using v-if to actually hide it because FF is slow to apply :not(:empty) CSS -->
+        <div class="script-message" v-if="script.message" v-text="script.message"
+             :title="script.error || script.message"/>""",
+    ),
+    (
+        'src/options/views/script-item.vue',
+        r"""  &.error {
+    border-color: #f008;
+    [*|href="#refresh"] {
+      fill: #f00;
+    }
+    .script-message {
+      color: #f00;
+    }
+  }""",
+        r"""  .script-message {
+    display: inline-block;
+    max-width: 14em;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
+  }
+  &.error {
+    border-color: #f008;
+    [*|href="#refresh"] {
+      fill: #f00;
+    }
+    .script-message {
+      color: #f00;
+    }
+  }""",
     ),
 ]
 
