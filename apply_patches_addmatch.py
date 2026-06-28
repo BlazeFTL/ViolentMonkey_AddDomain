@@ -180,7 +180,7 @@ function checkMetaItemErrors(parts, index, errors) {""",
       id,
       code: result.code,
       bumpDate: true,
-      message: i18n('msgMatchAdded'),
+      message: '', // shown as a toast by the caller instead of the easily-truncated row text
     });
     res.pattern = wrapped;
     return res;
@@ -562,6 +562,7 @@ async function onAddMatchModal() {
             showMessage({ text: i18n('msgMatchExists') });
             return false;
           }
+          showMessage({ text: i18n('msgMatchAdded') }); // auto-dismissing toast (no buttons)
           return true;
         },
       },
@@ -589,6 +590,7 @@ const onAddMatchSave = async btn => {
     matchNote.value = i18n('msgMatchExists');
   } else {
     addMatchOpen.value = false;
+    showMessage({ text: i18n('msgMatchAdded') }); // auto-dismissing toast (no buttons)
   }
 };
 const onUpdate = async evt => {""",
