@@ -65,9 +65,21 @@ export function wrapMatchPattern(raw) {
 }
 
 /**
+ * A bare host typed as shorthand (no scheme, no wildcard of its own) defaults to the
+ * wildcard-subdomain form, same as the popup/list-UI add-domain box: `y.com` -> `*.y.com`.
+ * Anything that already has a scheme or a `*` in it (incl. a leading `*.`) is left alone.
+ * @param {string} piece
+ * @return {string}
+ */
+function defaultShorthandToSubdomain(piece) {
+  return /:\/\/|\*/.test(piece) ? piece : `*.${piece}`;
+}
+
+/**
  * Expands shorthand `@match` directives at save time so mobile users can type
  * `// @match example.com,xyz.*` instead of fiddling with `*://.../*` boilerplate.
  * - splits comma-separated values into one `@match` line per pattern
+ * - a bare host defaults to the wildcard-subdomain form (see `defaultShorthandToSubdomain`)
  * - completes each piece via `wrapMatchPattern`
  * - leaves already-valid single-pattern lines untouched (no-op, preserves formatting)
  * Only affects `@match`; not used by the programmatic "add domain" features,
@@ -87,7 +99,7 @@ export function expandMatchShorthand(code) {
     const prefix = m[1];
     const pieces = m[2].split(',').map(s => s.trim()).filter(Boolean);
     if (!pieces.length) return line;
-    const wrapped = pieces.map(wrapMatchPattern);
+    const wrapped = pieces.map(p => wrapMatchPattern(defaultShorthandToSubdomain(p)));
     if (wrapped.length === 1 && wrapped[0] === pieces[0]) return line;
     changed = true;
     return wrapped.map(w => prefix + w).join('\n');
@@ -788,8 +800,22 @@ msgMatchExists:""",
     // sizes are fetched after and aren't needed for that to be visible.
     Object.assign(script, update);
     if (script.error && !update.error) script.error = null;
+    if (update.message != null) {
+      clearTimeout(msgTimers.get(where.id));
+      if (script.message) {
+        msgTimers.set(where.id, setTimeout(() => { script.message = ''; }, 2500));
+      } else {
+        msgTimers.delete(where.id);
+      }
+    }
     const [sizes] = await sendCmdDirectly('GetSizes', [where.id]);
     initScript(script, sizes, code);""",
+    ),
+    (
+        'src/options/index.js',
+        r"""let updateThrottle;""",
+        r"""let updateThrottle;
+const msgTimers = new Map(); // per-script-id timer to auto-clear a transient script.message""",
     ),
 ]
 
@@ -820,9 +846,22 @@ test('expandMatchShorthand: comma list + bare domains get expanded', () => {
 // body
 `;
   const out = expandMatchShorthand(code);
-  expect(out).toContain('// @match       *://example.com/*\n// @match       *://xyz.*/*');
+  expect(out).toContain('// @match       *://*.example.com/*\n// @match       *://xyz.*/*');
   expect(out).toContain('// body\n');
-  expect(parseMeta(out).match).toEqual(['*://example.com/*', '*://xyz.*/*']);
+  expect(parseMeta(out).match).toEqual(['*://*.example.com/*', '*://xyz.*/*']);
+});
+
+test('expandMatchShorthand: an already-complete piece stays exact, a bare piece next to it still gets the subdomain wildcard', () => {
+  const code = `\
+// ==UserScript==
+// @name        Test
+// @match        *://x.com/*,y.com
+// @grant       none
+// ==/UserScript==
+`;
+  const out = expandMatchShorthand(code);
+  expect(out).toContain('// @match        *://x.com/*\n// @match        *://*.y.com/*');
+  expect(parseMeta(out).match).toEqual(['*://x.com/*', '*://*.y.com/*']);
 });
 
 test('expandMatchShorthand: already-valid single pattern is left untouched (no-op)', () => {
