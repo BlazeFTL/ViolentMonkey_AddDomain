@@ -16,6 +16,17 @@ from pathlib import Path
 # Each patch: (file, old, new). `old` must appear EXACTLY once in `file`.
 PATCHES = [
     (
+        'src/common/util.js',
+        r"""export const i18n = memoize((name, args) => chrome.i18n.getMessage(name, args) || name);
+const HAS_BASE64_RE = /(^|;)\s*base64\s*(;|$)/;""",
+        r"""export const i18n = memoize((name, args) => chrome.i18n.getMessage(name, args) || name);
+/** Caps a string for one-line toasts/banners where there's no room for the full name. */
+export function truncateText(text, max = 24) {
+  return text && text.length > max ? `${text.slice(0, max - 1)}\u2026` : text || '';
+}
+const HAS_BASE64_RE = /(^|;)\s*base64\s*(;|$)/;""",
+    ),
+    (
         'src/common/ui/index.js',
         r"""import { createApp, h } from 'vue';""",
         r"""import { createApp, h, reactive } from 'vue';""",
@@ -343,7 +354,13 @@ addOwnCommands({
   padding: .25rem .5rem .25rem $leftPaneWidth;""",
         r""".excludes-menu,
 .add-match-menu {
-  padding: .25rem .5rem .25rem $leftPaneWidth;""",
+  padding: .25rem .5rem .25rem $leftPaneWidth;
+  .add-match-note {
+    padding: .3rem .5rem;
+    border-radius: 2px;
+    background: hsl(0, 100%, 95%);
+    color: #c00;
+  }""",
     ),
     (
         'src/popup/views/app.vue',
@@ -416,6 +433,7 @@ addOwnCommands({
             <button v-text="i18n('buttonOK')" @click="onAddMatchSave(item)"/>
             <button v-text="i18n('buttonClear')" @click="onAddMatchClear(item)"/>
             <button v-text="i18n('buttonCancel')" @click="onAddMatchClose(item)"/>
+            <div class="add-match-note" v-if="addMatchNote" v-text="addMatchNote"/>
             <details class="mb-1">
               <summary><icon name="info"/></summary>
               <small v-text="i18n('menuAddMatchHint')"/>
@@ -445,6 +463,7 @@ function onAddMatch(item, evt) {
   // awaited round-trip finishing, or a slow/late background response can leave it stuck closed.
   addMatchInput.value = '';
   addMatchChips.value = {};
+  addMatchNote.value = '';
   addMatchId.value = id;
   focusAddMatchInput(item);
   sendCmdDirectly('GetTabDomain', item.pageUrl).then(({ domain, anyTld } = {}) => {
@@ -466,6 +485,7 @@ function onAddMatchClose(item) {
 }
 function onAddMatchClear(item) {
   addMatchInput.value = '';
+  addMatchNote.value = '';
   item.el?.querySelector('.add-match-menu input')?.focus();
 }
 async function onAddMatchSave(item, btn) {
@@ -473,11 +493,11 @@ async function onAddMatchSave(item, btn) {
   if (!pattern) return;
   const res = await sendCmdDirectly('AddScriptMatch', { id: item.props.id, pattern });
   if (res.duplicate) {
-    note.value = i18n('msgMatchExists');
+    addMatchNote.value = i18n('msgMatchExists');
   } else {
-    showToast(i18n('msgMatchAdded'));
+    showToast(i18n('msgMatchAdded', [res.pattern, truncateText(item.name)]));
+    onAddMatchClose(item);
   }
-  onAddMatchClose(item);
   checkReload();
 }""",
     ),
@@ -495,6 +515,7 @@ const extras = ref();
 const addMatchId = ref(null);
 const addMatchInput = ref('');
 const addMatchChips = ref({});
+const addMatchNote = ref('');
 const focusedItem = ref();""",
     ),
     (
@@ -649,7 +670,7 @@ async function onAddMatchModal() {
             showMessage({ text: i18n('msgMatchExists') });
             return false;
           }
-          showToast(i18n('msgMatchAdded'));
+          showToast(i18n('msgMatchAdded', [res.pattern, truncateText(cache.value.name)]));
           return true;
         },
       },
@@ -677,7 +698,7 @@ const onAddMatchSave = async btn => {
     matchNote.value = i18n('msgMatchExists');
   } else {
     addMatchOpen.value = false;
-    showToast(i18n('msgMatchAdded'));
+    showToast(i18n('msgMatchAdded', [res.pattern, truncateText(cache.value.name)]));
   }
 };
 const onUpdate = async evt => {""",
@@ -829,15 +850,17 @@ menuAddMatchHint:""",
         r"""msgMissingResources:""",
         r"""msgMatchExists:
   description: Shown when the @match pattern being added already exists in the script.
-  message: That domain is already in @match.
+  message: The domain is already added.
 msgMissingResources:""",
     ),
     (
         '_locales/en/messages.yml',
         r"""msgMatchExists:""",
         r"""msgMatchAdded:
-  description: Shown after a new @match pattern is successfully added.
-  message: Added to @match.
+  description: >-
+    Toast shown after a pattern is added to a script's @match.
+    $1 = the pattern, $2 = the (possibly truncated) script name.
+  message: $1 added to $2
 msgMatchExists:""",
     ),
     (
@@ -913,6 +936,24 @@ const msgTimers = new Map(); // per-script-id timer to auto-clear a transient sc
         'src/popup/views/app.vue',
         r"""import { EXTERNAL_LINK_PROPS, getActiveElement } from '@/common/ui';""",
         r"""import { EXTERNAL_LINK_PROPS, getActiveElement, showToast } from '@/common/ui';""",
+    ),
+    (
+        'src/popup/views/app.vue',
+        r"""import {
+  getScriptHome, getScriptName, getScriptRunAt, getScriptSupportUrl, getScriptUpdateUrl, i18n, makePause,
+  sendCmdDirectly, sendTabCmd,
+} from '@/common';""",
+        r"""import {
+  getScriptHome, getScriptName, getScriptRunAt, getScriptSupportUrl, getScriptUpdateUrl, i18n, makePause,
+  sendCmdDirectly, sendTabCmd, truncateText,
+} from '@/common';""",
+    ),
+    (
+        'src/options/views/script-item.vue',
+        r"""import { formatTime, getLocaleString, getScriptHome, getScriptSupportUrl, i18n, sendCmdDirectly } from '@/common';""",
+        r"""import {
+  formatTime, getLocaleString, getScriptHome, getScriptSupportUrl, i18n, sendCmdDirectly, truncateText,
+} from '@/common';""",
     ),
 ]
 
