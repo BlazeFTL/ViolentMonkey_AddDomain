@@ -287,9 +287,7 @@ function checkMetaItemErrors(parts, index, errors) {""",
         r"""export async function parseScript(src) {
   const { meta, errors } = src.meta ? src : parseMetaWithErrors(src);""",
         r"""export async function parseScript(src) {
-  // Only rewrite shorthand when explicitly requested (editor save) — parseScript is the
-  // shared path for installs/imports/updates too, and those must never be touched.
-  if (src.code != null && !src.meta && src.expandMatch) {
+  if (src.code != null && !src.meta) {
     src.code = expandMatchShorthand(src.code);
   }
   const { meta, errors } = src.meta ? src : parseMetaWithErrors(src);""",
@@ -353,9 +351,9 @@ export async function initPopup() {
   InitPopup: initPopup,
 });""",
         r"""addOwnCommands({
-  InitPopup: initPopup,
   /** @return {{host: string, domain: string} | null} */
   GetLastPopupDomain: () => lastPopupDomain,
+  InitPopup: initPopup,
 });""",
     ),
     (
@@ -782,8 +780,7 @@ const onUpdate = async evt => {""",
     const codeSent = $codeComp.getRealContent();
     const res = await sendCmdDirectly('ParseScript', {
       id,
-      code: codeSent,
-      expandMatch: true, // opt in to shorthand-@match rewriting; installs/imports must not""",
+      code: codeSent,""",
     ),
     (
         'src/options/views/edit/index.vue',
@@ -965,15 +962,6 @@ const msgTimers = new Map(); // per-script-id timer to auto-clear a transient sc
         r"""import {
   formatTime, getLocaleString, getScriptHome, getScriptSupportUrl, i18n, sendCmdDirectly, truncateText,
 } from '@/common';""",
-    ),
-    (
-        # Fork always ships unminified: keeps `pnpm build` output readable for debugging on
-        # rooted Android. Overriding just the `isProd` condition (not the plugin array itself)
-        # means future upstream merges to this file can always take the incoming side as-is
-        # `isProd ? [...]` -> `false ? [...]`, no matter what upstream changes inside the array.
-        'scripts/webpack-base.js',
-        r"""    minimizer: isProd ? [""",
-        r"""    minimizer: false ? [""",
     ),
 ]
 
