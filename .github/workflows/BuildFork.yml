@@ -55,11 +55,13 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           BETA=$(node -p "require('./package.json').beta || ''")
+          MM=$(echo "$VERSION" | cut -d. -f1,2)
           echo "PKG_VERSION=${VERSION}" >> $GITHUB_ENV
           if [ -n "$BETA" ]; then
-            echo "ARTIFACT_NAME=ViolentMonkey_AddDomain-V${VERSION}-${BETA}-beta-Unsigned" >> $GITHUB_ENV
-            echo "RELEASE_TAG=V${VERSION}-${BETA}-beta"                                     >> $GITHUB_ENV
-            echo "RELEASE_NAME=ViolentMonkey AddDomain V${VERSION}-${BETA} (Beta)"          >> $GITHUB_ENV
+            DISPLAY_VERSION="${MM}.${BETA}"
+            echo "ARTIFACT_NAME=ViolentMonkey_AddDomain-V${DISPLAY_VERSION}-Beta-Unsigned" >> $GITHUB_ENV
+            echo "RELEASE_TAG=V${DISPLAY_VERSION}-Beta"                                     >> $GITHUB_ENV
+            echo "RELEASE_NAME=ViolentMonkey AddDomain V${DISPLAY_VERSION} (Beta)"          >> $GITHUB_ENV
             echo "IS_BETA=true"                                                             >> $GITHUB_ENV
           else
             echo "ARTIFACT_NAME=ViolentMonkey_AddDomain-V${VERSION}-Unsigned" >> $GITHUB_ENV
