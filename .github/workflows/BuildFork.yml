@@ -25,6 +25,7 @@ jobs:
         uses: actions/checkout@v1
         with:
           fetch-depth: 100
+          fetch-tags: true
 
       - name: Apply patches
         run: python3 apply_patches_addmatch.py
@@ -54,17 +55,19 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           IS_BETA=$(node -p "Boolean(require('./package.json').beta)")
+          DESC="${GIT_DESCRIBE#v}"   # v2.41.2-3-gdd8bb6d -> 2.41.2-3-gdd8bb6d
+          DESC="${DESC%-g*}"        # -> 2.41.2-3
           echo "PKG_VERSION=${VERSION}" >> $GITHUB_ENV
           if [ "$IS_BETA" = "true" ]; then
-            echo "ARTIFACT_NAME=ViolentMonkey_AddDomain-V${VERSION}-beta" >> $GITHUB_ENV
-            echo "RELEASE_TAG=V${VERSION}-beta"                            >> $GITHUB_ENV
-            echo "RELEASE_NAME=ViolentMonkey AddDomain V${VERSION} (Beta)" >> $GITHUB_ENV
-            echo "IS_BETA=true"                                            >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=ViolentMonkey_AddDomain-V${DESC}-beta-Unsigned" >> $GITHUB_ENV
+            echo "RELEASE_TAG=V${DESC}-beta"                                    >> $GITHUB_ENV
+            echo "RELEASE_NAME=ViolentMonkey AddDomain V${DESC} (Beta)"         >> $GITHUB_ENV
+            echo "IS_BETA=true"                                                 >> $GITHUB_ENV
           else
-            echo "ARTIFACT_NAME=ViolentMonkey_AddDomain-V${VERSION}"       >> $GITHUB_ENV
-            echo "RELEASE_TAG=V${VERSION}"                                 >> $GITHUB_ENV
-            echo "RELEASE_NAME=ViolentMonkey AddDomain V${VERSION}"        >> $GITHUB_ENV
-            echo "IS_BETA=false"                                           >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=ViolentMonkey_AddDomain-V${DESC}-Unsigned"      >> $GITHUB_ENV
+            echo "RELEASE_TAG=V${DESC}"                                         >> $GITHUB_ENV
+            echo "RELEASE_NAME=ViolentMonkey AddDomain V${DESC}"                >> $GITHUB_ENV
+            echo "IS_BETA=false"                                                >> $GITHUB_ENV
           fi
 
       - name: Upload Artifact
