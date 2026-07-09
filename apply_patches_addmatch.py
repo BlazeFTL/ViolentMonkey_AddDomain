@@ -242,11 +242,12 @@ function checkMetaItemErrors(parts, index, errors) {""",
         'src/background/utils/db.js',
         r"""import {
   aliveScripts, getDefaultCustom, getNameURI, inferScriptProps, newScript, parseMeta,
-  removedScripts, scriptMap,
+  removedScripts, scriptMap, scriptSiteVisited,
 } from './script';""",
         r"""import {
   aliveScripts, expandMatchShorthand, getDefaultCustom, getNameURI, inferScriptProps,
-  insertMatchLine, newScript, parseMeta, removedScripts, scriptMap, wrapMatchPattern,
+  insertMatchLine, newScript, parseMeta, removedScripts, scriptMap, scriptSiteVisited,
+  wrapMatchPattern,
 } from './script';""",
     ),
     (
