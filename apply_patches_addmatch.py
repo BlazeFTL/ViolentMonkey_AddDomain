@@ -328,11 +328,10 @@ function checkMetaItemErrors(parts, index, errors) {""",
 export const popupTabs = {};
 const getCacheKey = tabId => 'SetPopup' + tabId;
 
-addOwnCommands({
-  async InitPopup() {
-    const tab = await getActiveTab() || {};
-    const { url = '', id: tabId } = tab;
-    const data = commands.GetTabDomain(url);""",
+export async function initPopup() {
+  const tab = await getActiveTab() || {};
+  const { url = '', id: tabId } = tab;
+  const data = commands.GetTabDomain(url);""",
         r"""/** @type {{[tabId: string]: chrome.runtime.Port}} */
 export const popupTabs = {};
 const getCacheKey = tabId => 'SetPopup' + tabId;
@@ -340,14 +339,22 @@ const getCacheKey = tabId => 'SetPopup' + tabId;
  * "Current tab" button since it has no direct access to the tab the popup was opened on. */
 let lastPopupDomain = null;
 
-addOwnCommands({
+export async function initPopup() {
+  const tab = await getActiveTab() || {};
+  const { url = '', id: tabId } = tab;
+  const data = commands.GetTabDomain(url);
+  if (data.host) lastPopupDomain = { host: data.host, domain: data.domain, anyTld: data.anyTld };""",
+    ),
+    (
+        'src/background/utils/popup-tracker.js',
+        r"""addOwnCommands({
+  InitPopup: initPopup,
+});""",
+        r"""addOwnCommands({
+  InitPopup: initPopup,
   /** @return {{host: string, domain: string} | null} */
   GetLastPopupDomain: () => lastPopupDomain,
-  async InitPopup() {
-    const tab = await getActiveTab() || {};
-    const { url = '', id: tabId } = tab;
-    const data = commands.GetTabDomain(url);
-    if (data.host) lastPopupDomain = { host: data.host, domain: data.domain, anyTld: data.anyTld };""",
+});""",
     ),
     (
         'src/popup/style.css',
