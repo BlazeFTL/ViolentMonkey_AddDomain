@@ -955,6 +955,15 @@ const msgTimers = new Map(); // per-script-id timer to auto-clear a transient sc
   formatTime, getLocaleString, getScriptHome, getScriptSupportUrl, i18n, sendCmdDirectly, truncateText,
 } from '@/common';""",
     ),
+    (
+        # Fork always ships unminified: keeps `pnpm build` output readable for debugging on
+        # rooted Android. Overriding just the `isProd` condition (not the plugin array itself)
+        # means future upstream merges to this file can always take the incoming side as-is
+        # `isProd ? [...]` -> `false ? [...]`, no matter what upstream changes inside the array.
+        'scripts/webpack-base.js',
+        r"""    minimizer: isProd ? [""",
+        r"""    minimizer: false ? [""",
+    ),
 ]
 
 # New file written verbatim (jest tests for the pure helper functions).
