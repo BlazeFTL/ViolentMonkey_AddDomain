@@ -1,6 +1,7 @@
 import { makePause } from '@/common';
 
 export const kAlarmRemove = 'remove';
+export const kAlarmSync = 'sync';
 export const kAlarmUpdate = 'update';
 export const kBadges = 'badges';
 export const kNotifications = 'notifications';
@@ -16,6 +17,7 @@ let sessionData = __.MV3 && chrome.storage.session.get().then(data => (
   badges = data[kBadges] || badges,
   notifications = data[kNotifications] || notifications,
   tabOpeners = data[kTabOpeners] || tabOpeners,
+  !data.init && chrome.storage.session.set({ init: 1 }),
   sessionData = data
 ));
 

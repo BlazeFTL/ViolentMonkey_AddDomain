@@ -1,7 +1,7 @@
 import {
   dataUri2text, getScriptHome, getScriptName, getScriptPrettyUrl, getScriptRunAt, getScriptsTags,
   getScriptUpdateUrl, i18n, ignoreChromeErrors, isDataUri, isRemote, isValidHttpUrl, makePause,
-  sendCmd, trueJoin,
+  trueJoin,
 } from '@/common';
 import {
   CACHE_KEYS, FETCH_OPTS, INFERRED, kTag, PROMISE, REQ_KEYS, TIMEOUT_24HOURS, TIMEOUT_WEEK,
@@ -9,6 +9,7 @@ import {
 } from '@/common/consts';
 import { deepSize, forEachEntry, forEachKey, forEachValue } from '@/common/object';
 import pluginEvents from '../plugin/events';
+import broadcast from './broadcast';
 import {
   aliveScripts, getDefaultCustom, getNameURI, inferScriptProps, newScript, parseMeta,
   removedScripts, scriptMap, scriptSiteVisited,
@@ -193,14 +194,13 @@ export async function initializeDatabase() {
       meta.grant = [...new Set(meta.grant || [])]; // deduplicate
     }
   });
-  initOptions(data, installedOver, installedOver !== NEW_INSTALL);
+  initOptions(data, installedOver, installedOver && installedOver !== NEW_INSTALL);
   if (__.DEBUG) {
     console.info('store:', {
       aliveScripts, removedScripts, maxScriptId, maxScriptPosition, scriptMap, scriptSizes,
     });
   }
-  sortScripts();
-  if (!__.MV3 || !sessionData.init && chrome.storage.session.set({ init: 1 })) {
+  if (!__.MV3 || !sessionData.init) {
     setTimeout(async () => {
       if (allKeys?.length) {
         const set = new Set(keys); // much faster lookup
@@ -210,6 +210,7 @@ export async function initializeDatabase() {
       vacuum(data);
     }, 100);
     checkRemove();
+    sortScripts();
   }
   if (!__.MV3) {
     setInterval(checkRemove, TIMEOUT_24HOURS);
@@ -255,10 +256,12 @@ export async function normalizePosition() {
 
 /** @return {Promise<Boolean>} */
 export async function sortScripts() {
-  aliveScripts.sort((a, b) => getInt(a.props.position) - getInt(b.props.position));
-  const changed = await normalizePosition();
-  sendCmd('ScriptsUpdated', null);
-  return changed;
+  const old = [...aliveScripts];
+  aliveScripts.sort((a, b) => (a.props.position || 0) - (b.props.position || 0));
+  if (await normalizePosition() || old.some((val, i) => val !== aliveScripts[i])) {
+    broadcast('ScriptsUpdated');
+    return true;
+  }
 }
 
 /** @return {?VMScript} */
@@ -557,7 +560,7 @@ export async function removeScripts(ids) {
     removedScripts.length = newLen; // live scripts were moved to the beginning
     await storage.api.remove(idsToRemove);
     vacuum();
-    return sendCmd('RemoveScripts', ids);
+    return broadcast('RemoveScripts', ids);
   }
 }
 
@@ -593,7 +596,7 @@ export async function updateScriptInfo(id, data) {
   }
   await Promise.all([
     storage.api.set({ [S_SCRIPT_PRE + id]: script }),
-    sendCmd('UpdateScript', { where: { id }, update: script }),
+    broadcast('UpdateScript', { where: { id }, update: script }),
   ]);
 }
 
@@ -708,7 +711,7 @@ export async function parseScript(src) {
   Object.assign(update, script, srcUpdate);
   result.where = { id };
   result[S_CODE] = src[S_CODE];
-  sendCmd('UpdateScript', result);
+  broadcast('UpdateScript', result);
   pluginEvents.emit('scriptChanged', result);
   if (src.reloadTab) reloadTabForScript(script);
   return result;
@@ -777,7 +780,7 @@ export async function fetchResources(script, src) {
   const error = errors.map(formatHttpError)::trueJoin('\n');
   if (error) {
     let message = i18n('msgErrorFetchingResource');
-    sendCmd('UpdateScript', {
+    broadcast('UpdateScript', {
       update: { error, message },
       where: { id: getPropsId(script) },
     });

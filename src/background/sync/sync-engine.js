@@ -1,4 +1,4 @@
-import { debounce, keepAlive, noop, normalizeKeys, sendCmd } from '@/common';
+import { debounce, keepAlive, noop, normalizeKeys } from '@/common';
 import { kMainFrame, TIMEOUT_HOUR } from '@/common/consts';
 import {
   SYNC_MERGE,
@@ -8,10 +8,12 @@ import {
 } from '@/common/consts-sync';
 import { forEachEntry, objectPick, objectSet } from '@/common/object';
 import { addOwnCommands, getOption, setOption } from '../utils';
+import broadcast from '../utils/broadcast';
 import { sortScripts, updateScriptInfo } from '../utils/db';
 import { DNR_ID_IDENTITY, updateSessionRules } from '../utils/dnr';
 import callOffscreen from '../utils/offscreen';
 import { script as pluginScript } from '../plugin';
+import sessionData from '../utils/session-data';
 import {
   events,
   getSyncState,
@@ -40,7 +42,7 @@ import { DriveProviders } from '@usync/drive';
 const serviceNames = [];
 const serviceClasses = [];
 const services = {};
-const syncLater = debounce(autoSync, TIMEOUT_HOUR);
+const syncLater = !__.MV3 && debounce(autoSync, TIMEOUT_HOUR);
 const getDrive = (...init) =>
   !__.MV3
     ? new DriveProviders[init.shift()](...init)
@@ -229,7 +231,7 @@ function objectPurify(obj) {
 // --- State change listener ---
 
 const onStateChange = debounce(() => {
-  sendCmd('UpdateSync', getStates());
+  broadcast('UpdateSync', getStates());
 });
 events.on('change', (state) => {
   logInfo('status:', state.status);
@@ -392,7 +394,7 @@ export function createSyncService({
         break;
       }
     } catch (err) {
-      if (err.response?.status === 404 && driveProvider === 'webdav') {
+      if ((__.MV3 ? err.cause : err.response?.status) === 404 && driveProvider === 'webdav') {
         await drive.mkdir(VIOLENTMONKEY);
       } else {
         prepareError = err;
@@ -548,6 +550,10 @@ export function createSyncService({
     let resolver, done;
     port.onmessage = ({ data }) => {
       done = !data;
+      if (!done) {
+        done = data.err;
+        data = done ? Promise.reject(done) : data.res;
+      }
       resolver(data);
     };
     try {
@@ -964,13 +970,17 @@ export function initialize() {
     });
   }
   resetSyncState();
-  autoSync();
+  if (!__.MV3 || !sessionData.init) {
+    autoSync();
+  }
   return !!getService();
 }
 
 export function sync() {
   const service = getService();
-  return service && Promise.resolve(service.sync()).then(syncLater);
+  return __.MV3
+    ? service?.sync()
+    : service && Promise.resolve(service.sync()).then(syncLater);
 }
 
 export function autoSync() {
@@ -978,7 +988,7 @@ export function autoSync() {
   const service = getService();
   service?.prepare();
   console.info('[sync] auto-sync disabled, check later');
-  syncLater();
+  if (!__.MV3) syncLater();
 }
 
 export function authorize() {

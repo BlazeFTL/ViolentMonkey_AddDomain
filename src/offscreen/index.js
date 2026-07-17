@@ -1,14 +1,15 @@
 import { leaseBlobUrl } from '@/common';
 import setClipboard from '@/common/clipboard';
 import { downloadBlob } from '@/common/download';
-import { clientCommands, sendCmdToSW } from '@/common/sw-messaging';
+import handlers from '@/common/handlers';
+import { sendCmdToSW } from '@/common/messaging-sw';
 import { DriveProviders } from '@usync/drive';
 import { initXHR, xhrs } from './xhr';
 
 let drive;
 let autoCloseTimer;
 
-Object.assign(clientCommands, {
+Object.assign(handlers, {
   Alert: msg => alert(msg),
   DownloadBlob: downloadBlob,
   LeaseBlob: leaseBlobUrl,
@@ -53,9 +54,15 @@ function initDrive(provider, opts, context) {
 async function listDrive(cmd, args, transfer) {
   const mc = new MessageChannel();
   const port = mc.port1;
-  transfer[0] = mc.port2;
-  for await (const item of drive[cmd](...args)) {
-    port.postMessage(item);
+  transfer[0] = mc.port2; // must be before async work as it's used by the caller
+  try {
+    for await (const item of drive[cmd](...args)) {
+      port.postMessage({ res: item });
+    }
+    port.postMessage(null);
+  } catch (err) {
+    // `cause` is a standard property that can be sent via messaging.
+    err.cause = err.response?.status;
+    port.postMessage({ err });
   }
-  port.postMessage(null);
 }
