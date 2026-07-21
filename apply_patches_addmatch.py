@@ -421,7 +421,7 @@ export async function initPopup() {
               </small>
             </details>
           </div>
-          <div class="submenu-commands">""",
+          <div v-if="item.cmds" class="submenu-commands pos-rel">""",
         r"""            <details class="mb-1">
               <summary><icon name="info"/></summary>
               <small>{{i18n('menuExcludeHint')}} {{i18n('labelRelated')}}<a
@@ -447,7 +447,7 @@ export async function initPopup() {
               <small v-text="i18n('menuAddMatchHint')"/>
             </details>
           </div>
-          <div class="submenu-commands">""",
+          <div v-if="item.cmds" class="submenu-commands pos-rel">""",
     ),
     (
         'src/popup/views/app.vue',
