@@ -492,6 +492,16 @@ labelFirefoxPatchCspPopup:
 labelGeneral:
   description: Label for general settings.
   message: General
+labelGmDownloadViaApi:
+  description: Option in Advanced settings to use the browser download API for GM_download.
+  message: Use browser download API
+labelGmDownloadViaApiHint:
+  description: Tooltip for the browser download option in Advanced settings.
+  message: Allows scripts to save files into subfolders inside your downloads
+    directory and shows download progress in the browser's download bar.
+labelGrantPermission:
+  description: Button to request the API permission.
+  message: Grant permission
 labelHelpTranslate:
   description: Label for link to localization guide in about tab
   message: Help with translation

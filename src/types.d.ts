@@ -35,21 +35,25 @@ declare namespace GMReq {
   type UserOpts = VMScriptGMDownloadOptions | VMScriptGMXHRDetails;
   interface BG {
     cb: (data: GMReq.Message.BGAny) => Promise<void>;
+    cbe?: (err: string|Error) => Promise<void>;
     /** use browser's `Cookie` header */
     cookie?: boolean;
     /** allow Set-Cookie header to affect browser */
     'set-cookie'?: boolean;
     coreId: string;
+    dlEvents?: EventTypeMap;
+    dlId?: number;
     /** Firefox-only workaround for CSP blocking a blob: URL */
     fileName: string;
     frame: VMMessageTargetFrame;
     frameId: number;
     id: string;
-    resolve: (v?: any) => void;
+    resolve?: (v?: any) => void;
     responseHeaders: string;
     ruleId?: number;
     storeId: string;
     tabId: number;
+    timer?: number;
     url: string;
     xhr: XMLHttpRequest;
     xhrUrl: string;
@@ -103,6 +107,7 @@ declare namespace GMReq {
       id: string;
       scriptId: number;
       anonymous: boolean;
+      conflictAction?: chrome.downloads.FilenameConflictAction;
       fileName: string;
       data: any[];
       events: [EventTypeMap, EventTypeMap];
@@ -111,6 +116,7 @@ declare namespace GMReq {
       overrideMimeType?: string;
       password?: string;
       responseType: XMLHttpRequestResponseType;
+      saveAs?: boolean;
       timeout?: number;
       ua?: string[];
       url: string;
@@ -361,6 +367,7 @@ declare namespace VMInjection {
   }
   interface Info {
     gmi: {
+      downloadMode: 'browser' | 'native';
       isIncognito: boolean;
     };
     ua: VMScriptGMInfoPlatform;
