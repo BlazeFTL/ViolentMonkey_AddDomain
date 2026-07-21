@@ -10,7 +10,6 @@ let drive;
 let autoCloseTimer;
 
 Object.assign(handlers, {
-  Alert: msg => alert(msg),
   DownloadBlob: downloadBlob,
   LeaseBlob: leaseBlobUrl,
   Drive: ([cmd, args, init], src, transfer) => (
@@ -19,6 +18,14 @@ Object.assign(handlers, {
       ? (listDrive(cmd, args, transfer), transfer[0])
       : drive[cmd](...args)
   ),
+  async Fetch([url, init, get = 'text']) {
+    const req = await fetch(url, init);
+    return {
+      data: await req[get](),
+      headers: [...req.headers],
+      status: req.status,
+    };
+  },
   RevokeBlob: URL.revokeObjectURL,
   SetClipboard: setClipboard,
   /** @param {XHRStartOptions} opts */

@@ -59,22 +59,6 @@
           <div class="ml-2" v-text="i18n('headerRecycleBin')" :data-size="state.size" />
         </Tooltip>
         <div>
-          <div class="sorter flex center-items mx-1"
-               :class="{ 'btn-ghost': collapseSorter }">
-            <Tooltip align="start"
-                     :content="i18n('sortOrder').trim() + (collapseSorter ? ' ' + (currentSort.text || '') : '')">
-              <component :is="currentSort.icon || IconSort"/>
-            </Tooltip>
-            <select :value="filters.sort" @change="handleOrderChange" class="h-100">
-              <option
-                v-for="({text, title}, name) in sortModes"
-                v-text="text"
-                :title
-                :key="name"
-                :value="name">
-              </option>
-            </select>
-          </div>
           <!-- form and id are required for the built-in autocomplete using entered values -->
           <form class="filter-search hidden-xs" @submit.prevent>
             <label>
@@ -100,6 +84,22 @@
               </div>
             </template>
           </Dropdown>
+          <div class="sorter flex center-items mx-1"
+               :class="{ 'btn-ghost': collapseSorter }">
+            <Tooltip align="start"
+                     :content="i18n('sortOrder').trim() + (collapseSorter ? ' ' + (currentSort.text || '') : '')">
+              <component :is="currentSort.icon || IconSort"/>
+            </Tooltip>
+            <select :value="filters.sort" @change="handleOrderChange" class="h-100">
+              <option
+                v-for="({text, title}, name) in sortModes"
+                v-text="text"
+                :title
+                :key="name"
+                :value="name">
+              </option>
+            </select>
+          </div>
           <Dropdown align="right" class="settings">
             <Tooltip :content="i18n('labelSettings')" placement="bottom" align="end">
               <a class="btn-ghost" tabindex="0">
@@ -235,7 +235,9 @@ const cmpName = (a, b) => collator.compare(a.$cache.lowerName, b.$cache.lowerNam
 const sortModes = [
   ['exec', i18n('filterExecutionOrder'), IconSort, IconSortDown],
   ['alpha', i18n('filterAlphabeticalOrder'), IconAlpha, IconAlphaDown, cmpName],
-  ['author', i18n('labelAuthor').replace(/\W+/, '').toLowerCase(), IconUser, IconUserDown,
+  ['author',
+    i18n('labelAuthor').replace(/[\s:\u{A789}\u{FE13}\u{FE55}\u{FF1A}]+/u, '').toLowerCase(),
+    IconUser, IconUserDown,
     (a, b) => collator.compare(a.meta.author || '', b.meta.author || '') || cmpName(a, b)],
   [UPDATE, i18n('filterLastUpdateOrder'), IconClock, IconClockDown,
     (a, b) => (+b.props.lastUpdated || 0) - (+a.props.lastUpdated || 0)],
@@ -418,14 +420,14 @@ async function refreshUI() {
 }
 function sortScripts(scripts) {
   const { compare, reversed } = currentSort.value;
-  if (compare) {
-    const searching = state.search.rules.length;
-    const enabledFirst = filters.showEnabledFirst;
+  const searching = state.search.rules.length;
+  const enabledFirst = filters.showEnabledFirst;
+  if (compare || enabledFirst || searching) {
     scripts.sort(!enabledFirst && !searching && !reversed
       ? compare
       : (a, b) => enabledFirst && (b.config.enabled - a.config.enabled)
         || searching && (b.$cache.show - a.$cache.show)
-        || (reversed ? compare(b, a) : compare(a, b)),
+        || compare && (reversed ? compare(b, a) : compare(a, b)),
     );
   }
   sortedScripts.value = scripts;

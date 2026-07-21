@@ -39,7 +39,7 @@ declare namespace GMReq {
     cookie?: boolean;
     /** allow Set-Cookie header to affect browser */
     'set-cookie'?: boolean;
-    coreId: number;
+    coreId: string;
     /** Firefox-only workaround for CSP blocking a blob: URL */
     fileName: string;
     frame: VMMessageTargetFrame;
@@ -170,6 +170,7 @@ declare interface VMScript {
     /** 2 = allow updates and local edits */
     shouldUpdate: NumBool | 2;
     notifyUpdates?: NumBoolNull;
+    noCmdNames: NumBool;
   };
   custom: {
     name?: string;
@@ -409,16 +410,13 @@ declare namespace VMReq {
     /** truthy = multi script update, 'auto' = autoUpdate, falsy = single */
     multi?: boolean | 'auto';
   }
-  type Response = {
+  type Response = (ResponseOK | Error) & {
     url: string;
     status: number;
-  } & (ResponseOK | ResponseError);
+  };
   type ResponseOK = {
     headers: Headers;
     data: string | ArrayBuffer | Blob | PlainJSONValue;
-  };
-  type ResponseError = {
-    message: string;
   };
 }
 

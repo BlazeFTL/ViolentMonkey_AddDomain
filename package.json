@@ -1,7 +1,7 @@
 {
   "name": "violentmonkey",
   "description": "Violentmonkey",
-  "version": "2.43.0",
+  "version": "2.45.0",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "prepare": "husky",
@@ -19,8 +19,9 @@
     "test": "cross-env BABEL_ENV=test TEST=test jest test --maxWorkers=50%",
     "ci": "run-p lint test",
     "bumpVersion": "gulp bump",
-    "bump": "run-s ci \"bumpVersion --commit\"",
-    "preversion": "run-s ci \"bumpVersion --reset\""
+    "bump": "run-s ci && gulp bump --commit",
+    "preversion": "run-s ci",
+    "version": "gulp bump --reset"
   },
   "devDependencies": {
     "@actions/core": "^1.11.1",
