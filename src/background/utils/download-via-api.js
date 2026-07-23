@@ -1,15 +1,31 @@
 import { isEmpty } from '@/common';
 import { kDownloads } from '@/common/consts';
-import { requests } from './requests-core';
+import { FORBIDDEN_HEADER_RE, requests } from './requests-core';
 import { downloads, flushSession } from './session-data';
+import { FIREFOX } from './ua';
 
-const objEntryToApiHeader = e => ({ name: e[0], value: e[1] });
+const reReferer = /^referer$/i; // allowed since Firefox 70
+const reUA = /^user-agent$/i; // allowed since Firefox 43
+const objEntryToApiHeader = ([k, v]) => (
+  FORBIDDEN_HEADER_RE.test(k)
+    ? !__.MV3 && IS_FIREFOX && (reUA.test(k) || reReferer.test(k) && FIREFOX >= 70)
+    : !reUA.test(k) || !__.MV3 && IS_FIREFOX
+) && { name: k, value: v };
 
-export default async function downloadViaApi(opts, dlEvents, reqId, req) {
-  const id = await browser.downloads.download({
+/**
+ * @param {GMReq.Message.Web} opts
+ * @param {GMReq.EventTypeMap[]} events
+ * @param {string} id
+ * @param {GMReq.BG} req
+ * @param {VMMessageSender} src
+ * @param {string} [fileName]
+ */
+export default async function downloadViaApi(opts, events, id, req, src, fileName) {
+  const { headers } = opts;
+  const dlId = await browser.downloads.download({
     conflictAction: opts.conflictAction,
-    filename: opts[kFileName],
-    headers: Object.entries(opts.headers || {}).map(objEntryToApiHeader),
+    filename: fileName,
+    headers: headers ? Object.entries(headers).map(objEntryToApiHeader).filter(Boolean) : undefined,
     method: opts.method || 'GET',
     saveAs: opts.saveAs,
     url: opts.url,
@@ -17,9 +33,9 @@ export default async function downloadViaApi(opts, dlEvents, reqId, req) {
   if (isEmpty(downloads)) {
     browser.downloads.onChanged.addListener(onDownloadChanged);
   }
-  downloads[id] = reqId;
-  req.dlEvents = dlEvents;
-  req.dlId = id;
+  downloads[dlId] = id;
+  req.dlEvents = events[0];
+  req.dlId = dlId;
 };
 
 /** @param {browser.downloads._OnChangedDownloadDelta} _ */

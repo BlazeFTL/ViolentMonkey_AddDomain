@@ -1,17 +1,16 @@
 import { keepAlive, noop, sendTabCmd, string2uint8array } from '@/common';
 import { CHARSET_UTF8, FORM_URLENCODED, UA_PROPS, UPLOAD } from '@/common/consts';
-import { downloadBlob } from '@/common/download';
 import { deepEqual, forEachEntry, forEachValue } from '@/common/object';
 import { kGmDownloadViaApi } from '@/common/options-defaults';
 import { initXHR } from '@/offscreen/xhr';
-import { DNR_ID_XHR, updateSessionRules, xhrRules } from './dnr';
+import { DNR, DNR_ID_XHR, updateSessionRules, xhrRules } from './dnr';
 import downloadViaApi from './download-via-api';
 import { addOwnCommands, addPublicCommands, commands } from './init';
 import callOffscreen from './offscreen';
 import { getOption } from './options';
 import { permissionDownloads } from './permissions';
 import {
-  FORBIDDEN_HEADER_RE, kCookie, kSetCookie, requests, toggleHeaderInjector, verify,
+  FORBIDDEN_HEADER_RE, kCookie, kRequestHeaders, kSetCookie, requests, toggleHeaderInjector, verify,
 } from './requests-core';
 import { getFrameDocIdAsObj, getFrameDocIdFromSrc } from './tabs';
 import { navUA, navUAD } from './ua';
@@ -20,11 +19,6 @@ import { vetUrl } from './url';
 if (__.MV3) addOwnCommands({
   XHRNotify: data => {
     requests[data.id].cb(data);
-  },
-});
-else addPublicCommands({
-  DownloadBlob(args) {
-    downloadBlob(...args);
   },
 });
 
@@ -37,11 +31,12 @@ addPublicCommands({
   HttpRequest(opts, src) {
     const tabId = src.tab.id;
     const frameId = getFrameDocIdFromSrc(src);
-    const { id, events } = opts;
+    const { id, events, [kFileName]: fileName } = opts;
     const req = requests[id] = /** @type {GMReq.BG} */ {
       id,
       tabId,
       [kFrameId]: frameId,
+      [kFileName]: fileName,
       frame: getFrameDocIdAsObj(frameId),
     };
     /** @param {GMReq.Message.BGAny} res */
@@ -68,10 +63,10 @@ addPublicCommands({
       resolve: {value: __.MV3 ? keepAlive() : noop},
     });
     return (
-      opts[kFileName] && permissionDownloads && getOption(kGmDownloadViaApi)
-      ? downloadViaApi(opts, events[0], id, req)
-      : httpRequest(opts, events, src)
-    ).catch(cbError);
+      fileName && permissionDownloads && getOption(kGmDownloadViaApi)
+      ? downloadViaApi
+      : httpRequest
+    )(opts, events, id, req, src, fileName).catch(cbError);
   },
   /** @return {void | Promise<void>} */
   AbortRequest(id) {
@@ -81,9 +76,7 @@ addPublicCommands({
         : requests[id].xhr.abort();
   },
   // TODO: check if the content script can revoke it
-  RevokeBlob: url => __.MV3
-    ? callOffscreen('RevokeBlob', url)
-    : URL.revokeObjectURL(url),
+  RevokeBlob: __.MV3 ? callOffscreen : URL.revokeObjectURL,
 });
 
 const quoteHeaderValue = str => `"${str.replace(/[\\"]/g, '\\$&')}"`;
@@ -101,17 +94,16 @@ const UA_HEADERS = Object.keys(UA_GETTERS);
 /**
  * @param {GMReq.Message.Web} opts
  * @param {GMReq.EventTypeMap[]} events
+ * @param {string} id
+ * @param {GMReq.BG} req
  * @param {VMMessageSender} src
- * @returns {Promise<void>}
+ * -@param {string} [fileName]
  */
-async function httpRequest(opts, events, src) {
+async function httpRequest(opts, events, id, req, src) {
   const { tab } = src;
   const { incognito } = tab;
-  const { anonymous, id, overrideMimeType, [kXhrType]: xhrType } = opts;
+  const { anonymous, overrideMimeType, [kXhrType]: xhrType } = opts;
   const url = vetUrl(opts.url, src.url, true);
-  const req = requests[id];
-  if (!req || req.cb) return;
-  req[kFileName] = opts[kFileName];
   const vmHeaders = __.MV3 ? [] : {};
   const xhrHeaders = {};
   const xhrProps = {};
@@ -123,17 +115,23 @@ async function httpRequest(opts, events, src) {
   const blobbed = willStringifyBinaries && !incognito;
   const [body, contentType] = decodeBody(opts.data);
   // Firefox doesn't send cookies, https://github.com/violentmonkey/violentmonkey/issues/606
-  // Both Chrome & FF need explicit routing of cookies in containers or incognito
-  const shouldSendCookies = !anonymous && (incognito || IS_FIREFOX);
+  // Chrome MV2 & FF need explicit routing of cookies in containers or "spanning" mode incognito
+  const shouldSendCookies = !__.MV3 && !anonymous && (incognito || IS_FIREFOX);
   const uaHeaders = [];
-  req[kCookie] = !anonymous && !shouldSendCookies;
-  req[kSetCookie] = !anonymous;
+  const kOrigin = 'origin';
+  let hasOriginHeader;
+  let storeId;
+  if (!__.MV3) {
+    req[kCookie] = !anonymous && !shouldSendCookies;
+    req[kSetCookie] = !anonymous;
+  }
   if (contentType) xhrHeaders['Content-Type'] = contentType;
   opts.headers::forEachEntry(([name, value]) => {
     const nameLow = name.toLowerCase();
     const i = UA_HEADERS.indexOf(nameLow);
     if (i >= 0 && (uaHeaders[i] = true) || FORBIDDEN_HEADER_RE.test(name)) {
       pushHeader(vmHeaders, name, value, nameLow);
+      hasOriginHeader ||= nameLow === kOrigin;
     } else {
       xhrHeaders[name] = value;
     }
@@ -149,10 +147,10 @@ async function httpRequest(opts, events, src) {
   if (shouldSendCookies) {
     for (const store of await browser.cookies.getAllCookieStores()) {
       if (store.tabIds.includes(tab.id)) {
-        if (!__.MV3 && IS_FIREFOX ? !store.id.endsWith('-default') : store.id !== '0') {
+        if (IS_FIREFOX ? !store.id.endsWith('-default') : store.id !== '0') {
           /* Cookie routing. For the main store we rely on the browser.
            * The ids are hard-coded as `stores` may omit the main store if no such tabs are open. */
-          req.storeId = store.id;
+          storeId = req.storeId = store.id;
         }
         break;
       }
@@ -160,8 +158,8 @@ async function httpRequest(opts, events, src) {
     const now = Date.now() / 1000;
     const cookies = (await browser.cookies.getAll({
       url,
-      storeId: req.storeId,
-      ...!__.MV3 && IS_FIREFOX && { firstPartyDomain: null },
+      storeId,
+      ...IS_FIREFOX && { firstPartyDomain: null },
     })).filter(c => c.session || c.expirationDate > now); // FF reports expired cookies!
     if (cookies.length) {
       pushHeader(vmHeaders, kCookie,
@@ -181,33 +179,47 @@ async function httpRequest(opts, events, src) {
   };
   toggleHeaderInjector(id, vmHeaders, xhrUrl);
   if (__.MV3) {
-    if (vmHeaders.length) addDnrHeaders(req, xhrUrl, vmHeaders);
+    let responseHeaders;
+    let ruleId = DNR_ID_XHR; while (xhrRules[++ruleId]) {/**/}
+    req.ruleId = ruleId;
+    xhrRules[ruleId] = 1;
+    if (anonymous) {
+      pushHeader(vmHeaders, kCookie);
+      pushHeader(responseHeaders = [], kSetCookie);
+    }
+    if (!hasOriginHeader) {
+      pushHeader(vmHeaders, kOrigin);
+    }
+    await DNR.updateSessionRules({
+      addRules: [{
+        id: ruleId,
+        condition: {
+          tabIds: [-1/*chrome.tabs.TAB_ID_NONE*/],
+          urlFilter: '|' + xhrUrl + '|',
+        },
+        action: {
+          type: 'modifyHeaders',
+          [kRequestHeaders]: vmHeaders,
+          [kResponseHeaders]: responseHeaders,
+        },
+      }]
+    });
     await callOffscreen('XHRStart', xhrOpts);
   } else {
     initXHR(xhrOpts);
   }
 }
 
-function addDnrHeaders(req, xhrUrl, vmHeaders) {
-  let ruleId = DNR_ID_XHR; while (xhrRules[++ruleId]) {/**/}
-  req.ruleId = xhrRules[ruleId] = ruleId;
-  updateSessionRules(ruleId, {
-    tabIds: [-1/*chrome.tabs.TAB_ID_NONE*/],
-    urlFilter: '|' + xhrUrl + '|',
-  }, {
-    type: 'modifyHeaders',
-    requestHeaders: vmHeaders,
-  });
-}
-
 /** @param {GMReq.BG} req */
 function clearRequest({ id, coreId, resolve, ruleId }) {
   delete verify[coreId];
   delete requests[id];
-  delete xhrRules[ruleId];
-  if (ruleId) updateSessionRules([ruleId]);
+  if (__.MV3) {
+    delete xhrRules[ruleId];
+    if (ruleId) updateSessionRules([ruleId]);
+    resolve();
+  }
   toggleHeaderInjector(id, false);
-  if (__.MV3) resolve();
 }
 
 export function clearRequestsByTabId(tabId, frameId) {
@@ -255,7 +267,7 @@ function decodeBody([body, type, wasBlob]) {
 /**
  * @param {Object|chrome.declarativeNetRequest.ModifyHeaderInfo[]} res
  * @param {string} name
- * @param {string} value
+ * @param {string} [value]
  * @param {string} [nameLow]
  */
 function pushHeader(res, name, value, nameLow = name) {
@@ -263,7 +275,7 @@ function pushHeader(res, name, value, nameLow = name) {
     res.push({
       value,
       header: name,
-      operation: nameLow === kCookie ? 'append' : 'set',
+      operation: value == null ? 'remove' : nameLow === kCookie ? 'append' : 'set',
     });
   } else {
     res[nameLow] = { name, value };
