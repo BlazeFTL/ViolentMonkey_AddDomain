@@ -13,6 +13,7 @@
                    v-show="$EW?.value"/>
   </div>
   <setting-check name="pageMenuCommands" :label="i18n('labelPageMenuCommands')"/>
+  <setting-check name="showAddMatchBtn" :label="i18n('labelShowAddMatchBtn')"/>
   <div class="mid">
     <label>{{ i18n('labelWidth') }}
       <input v-model="popupWidth" type="range"
