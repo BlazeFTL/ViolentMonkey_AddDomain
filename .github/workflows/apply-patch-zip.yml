@@ -3,10 +3,14 @@ name: Apply add-match patch bundle
 on:
   workflow_dispatch:
     inputs:
-      zip_path:
-        description: 'Path to patch bundle zip in repo root'
+      target_branch:
+        description: 'Branch to check out, patch, and push (this becomes your PR branch)'
         required: true
-        default: 'patch-bundle.zip'
+        default: 'PR'
+      zip_path:
+        description: 'Path to patch bundle zip in repo root of target_branch'
+        required: true
+        default: 'addmatch-patch-bundle.zip'
 
 permissions:
   contents: write
@@ -16,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_branch }}
 
       - name: Extract bundle over repo
         run: |
@@ -28,4 +34,4 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "Add domain to @match: popup + dashboard button, comma/shorthand expansion"
-          git push origin HEAD:${{ github.ref_name }}
+          git push origin HEAD:${{ inputs.target_branch }}
