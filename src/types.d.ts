@@ -120,7 +120,8 @@ declare namespace GMReq {
       saveAs?: boolean;
       timeout?: number;
       ua?: string[];
-      url: string;
+      /** Blob in Firefox */
+      url: string | Blob;
       user?: string;
       /** responseType to use in the actual XHR */
       xhrType: XMLHttpRequestResponseType;
@@ -431,7 +432,6 @@ declare namespace VMReq {
 declare type VMSearchOptions = {
   reversed?: boolean;
   wrapAround?: boolean;
-  reuseCursor?: boolean;
   pos?: { line: number, ch: number };
 }
 

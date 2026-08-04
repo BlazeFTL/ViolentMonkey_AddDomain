@@ -113,7 +113,8 @@ export function blob2base64(blob, offset = 0, length = 1e99) {
     return '';
   }
   if (U8_fromBase64) {
-    return blob.arrayBuffer().then(buf => new Uint8Array(buf).toBase64({ alphabet: 'base64url' }));
+    // Not using {alphabet: 'base64url'} because a data URI uses standard base64 encoding
+    return blob.arrayBuffer().then(buf => new Uint8Array(buf).toBase64());
   }
   return readBlob(blob).then(res => res.slice(res.indexOf(',') + 1));
 }
@@ -314,7 +315,7 @@ export function leaseBlobUrl(blob) {
 
 /**
  * @param {Blob} blob
- * @param {boolean} [asBuffer]
+ * @param {boolean | 'text'} [asBuffer]
  * @return {Promise<string|ArrayBuffer>}
  */
 export function readBlob(blob, asBuffer) {
@@ -322,7 +323,8 @@ export function readBlob(blob, asBuffer) {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
     reader.onerror = reject;
-    if (asBuffer) reader.readAsArrayBuffer(blob);
+    if (asBuffer === 'text') reader.readAsText(blob);
+    else if (asBuffer) reader.readAsArrayBuffer(blob);
     else reader.readAsDataURL(blob);
   });
 }

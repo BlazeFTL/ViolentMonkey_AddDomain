@@ -19,7 +19,7 @@ async function init() {
   const dataPromise = sendCmd('GetInjected', {
     /* In FF93 sender.url is wrong: https://bugzil.la/1734984,
      * in Chrome sender.url is ok, but location.href is wrong for text selection URLs #:~:text= */
-    url: !__.MV3 && IS_FIREFOX && location.href,
+    url: IS_FIREFOX && location.href,
     // XML document's appearance breaks when script elements are added
     [FORCE_CONTENT]: isXml,
     done: !!(regData || xhrData),
@@ -32,11 +32,12 @@ async function init() {
   const info = data.info;
   const injectInto = bridge.injectInto = data[INJECT_INTO]; // eslint-disable-line no-import-assign
   assign(bridge.ids, data[IDS]);
-  if (!__.MV3 && IS_FIREFOX && !data.clipFF) {
+  if (IS_FIREFOX && !data.clipFF) {
     off('copy', onClipboardCopy, true);
   }
-  if (!__.MV3 && IS_FIREFOX && info) { // must redefine now as it's used by injectPageSandbox
-    IS_FIREFOX = parseFloat(info.ua.browserVersion); // eslint-disable-line no-global-assign
+  if (IS_FIREFOX && info) { // must redefine now as it's used by injectPageSandbox
+    // In MV2 build `IS_FIREFOX` is compiled to `IS_FIREFOX_MV2`
+    IS_FIREFOX_MV2 = parseFloat(info.ua.browserVersion); // eslint-disable-line no-global-assign
   }
   if (data[EXPOSE] != null && !isXml && injectPageSandbox(data)) {
     bridge.addHandlers({ GetScriptVer: true });
@@ -79,7 +80,7 @@ bridge.addHandlers({
   UpdateValue: REIFY,
 });
 
-init().catch(!__.MV3 && IS_FIREFOX && logging.error);
+init().catch(IS_FIREFOX && logging.error);
 // Firefox can't show exceptions in content scripts
 
 async function getRegistration(viaMessaging) {

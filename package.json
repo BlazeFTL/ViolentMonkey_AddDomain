@@ -112,11 +112,11 @@
   "homepage": "https://github.com/violentmonkey/violentmonkey",
   "license": "MIT",
   "dependencies": {
-    "@usync/drive": "^0.2.3",
+    "@usync/drive": "^0.2.4",
     "@usync/oauth2": "^0.1.7",
     "@usync/sync": "^0.1.1",
     "@violentmonkey/shortcut": "^1.4.4",
-    "@violentmonkey/xml-parser": "^1.0.0",
+    "@violentmonkey/xml-parser": "^1.0.1",
     "codemirror": "^5.65.20",
     "fflate": "^0.8.3",
     "tldts": "^7.4.9",
@@ -132,5 +132,6 @@
       "./test/mock/index.js"
     ],
     "testEnvironment": "./test/mock/env.js"
-  }
+  },
+  "beta": 1
 }
