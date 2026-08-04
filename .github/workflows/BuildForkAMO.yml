@@ -43,6 +43,13 @@ jobs:
           SYNC_ONEDRIVE_CLIENT_ID: ${{ secrets.SYNC_ONEDRIVE_CLIENT_ID }}
         run: pnpm build
 
+      - name: Patch Firefox manifest
+        run: |
+          jq '.browser_specific_settings.gecko.id = "{9a1fc8d0-b9d4-4056-a5a0-b69fd3bea58e}" |
+              .browser_specific_settings.gecko.data_collection_permissions = {"required": ["none"], "optional": []}' \
+            dist/manifest.json > dist/manifest.json.tmp
+          mv dist/manifest.json.tmp dist/manifest.json
+
       - name: Get version and SHA
         run: node scripts/action-helper.js ci
 
@@ -54,12 +61,12 @@ jobs:
           echo "PKG_VERSION=${VERSION}" >> $GITHUB_ENV
           if [ -n "$BETA" ]; then
             DISPLAY_VERSION="${MM}.${BETA}"
-            echo "ARTIFACT_NAME=ViolentMonkey_AddDomain-V${DISPLAY_VERSION}-Beta-Unsigned" >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=ViolentMonkey_AddDomain-V${DISPLAY_VERSION}-Beta-Unsigned-Firefox" >> $GITHUB_ENV
             echo "RELEASE_TAG=V${DISPLAY_VERSION}-Beta"                                     >> $GITHUB_ENV
             echo "RELEASE_NAME=ViolentMonkey AddDomain V${DISPLAY_VERSION} (Beta)"          >> $GITHUB_ENV
             echo "IS_BETA=true"                                                             >> $GITHUB_ENV
           else
-            echo "ARTIFACT_NAME=ViolentMonkey_AddDomain-V${VERSION}-Unsigned" >> $GITHUB_ENV
+            echo "ARTIFACT_NAME=ViolentMonkey_AddDomain-V${VERSION}-Unsigned-Firefox" >> $GITHUB_ENV
             echo "RELEASE_TAG=V${VERSION}"                                    >> $GITHUB_ENV
             echo "RELEASE_NAME=ViolentMonkey AddDomain V${VERSION}"           >> $GITHUB_ENV
             echo "IS_BETA=false"                                              >> $GITHUB_ENV
