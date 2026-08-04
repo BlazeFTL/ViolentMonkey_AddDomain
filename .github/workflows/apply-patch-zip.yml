@@ -8,9 +8,9 @@ on:
         required: true
         default: 'patch-bundle.zip'
       target_branch:
-        description: 'Branch to create/push the extracted changes to'
-        required: true
-        default: 'add-match-feature'
+        description: 'Branch to commit to. Leave empty to commit directly to the branch this workflow runs on.'
+        required: false
+        default: ''
       delete_zip:
         description: 'Delete the zip from the repo after extracting'
         type: boolean
@@ -26,8 +26,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create/switch to target branch
-        run: git checkout -B "${{ inputs.target_branch }}"
+      - name: Resolve branch
+        id: branch
+        run: |
+          if [ -n "${{ inputs.target_branch }}" ]; then
+            git checkout -B "${{ inputs.target_branch }}"
+            echo "name=${{ inputs.target_branch }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Extract zip into repo
         run: |
@@ -45,4 +52,4 @@ jobs:
           git add -A
           git diff --cached --quiet && { echo "Nothing to commit"; exit 0; }
           git commit -m "Extract ${{ inputs.zip_path }}"
-          git push -u origin "${{ inputs.target_branch }}"
+          git push origin "HEAD:${{ steps.branch.outputs.name }}"
