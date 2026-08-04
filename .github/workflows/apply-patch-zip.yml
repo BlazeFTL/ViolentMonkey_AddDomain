@@ -1,0 +1,48 @@
+name: Apply patch zip
+
+on:
+  workflow_dispatch:
+    inputs:
+      zip_path:
+        description: 'Path (in repo) of the zip to extract, e.g. patch-bundle.zip'
+        required: true
+        default: 'patch-bundle.zip'
+      target_branch:
+        description: 'Branch to create/push the extracted changes to'
+        required: true
+        default: 'add-match-feature'
+      delete_zip:
+        description: 'Delete the zip from the repo after extracting'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create/switch to target branch
+        run: git checkout -B "${{ inputs.target_branch }}"
+
+      - name: Extract zip into repo
+        run: |
+          test -f "${{ inputs.zip_path }}" || { echo "::error::${{ inputs.zip_path }} not found in repo"; exit 1; }
+          unzip -o "${{ inputs.zip_path }}" -d .
+
+      - name: Remove source zip
+        if: ${{ inputs.delete_zip }}
+        run: rm -f "${{ inputs.zip_path }}"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && { echo "Nothing to commit"; exit 0; }
+          git commit -m "Extract ${{ inputs.zip_path }}"
+          git push -u origin "${{ inputs.target_branch }}"
