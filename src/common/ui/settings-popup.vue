@@ -13,6 +13,15 @@
                    v-show="$EW?.value"/>
   </div>
   <setting-check name="pageMenuCommands" :label="i18n('labelPageMenuCommands')"/>
+  <setting-check name="showAddMatchBtn" :label="i18n('labelShowAddMatchBtn')" ref="$SAM"/>
+  <div class="mid ml-2c" v-show="$SAM?.value">
+    <label>{{ i18n('labelAddMatchTarget') }}
+      <select v-model="settings[kAddMatchTarget]">
+        <option v-for="(title, value) in items[kAddMatchTarget]" :key="value"
+                :value v-text="title"/>
+      </select>
+    </label>
+  </div>
   <div class="mid">
     <label>{{ i18n('labelWidth') }}
       <input v-model="popupWidth" type="range"
@@ -80,6 +89,7 @@ const WIDTH_MAX = 800;
 const kFPHideDisabled = 'filtersPopup.hideDisabled';
 const kFPSort = 'filtersPopup.sort';
 const kShowBadge = 'showBadge';
+const kAddMatchTarget = 'addMatchTarget';
 const badgeColorEnum = {
   badgeColor: i18n('titleBadgeColor'),
   badgeColorBlocked: i18n('titleBadgeColorBlocked'),
@@ -105,6 +115,11 @@ const items = {
     exec: i18n('filterExecutionOrder'),
     alpha: i18n('filterAlphabeticalOrder'),
   },
+  [kAddMatchTarget]: {
+    code: i18n('optionAddMatchTargetCode'),
+    settings: i18n('optionAddMatchTargetSettings'),
+    auto: i18n('optionAddMatchTargetAuto'),
+  },
   ...badgeColorEnum::mapEntry(() => badgeColorItem),
 };
 </script>
@@ -120,6 +135,7 @@ const settings = reactive({});
 const popupWidth = ref();
 const $popupWidthNumber = ref();
 const $EW = ref();
+const $SAM = ref();
 const isCustomBadgeColor = computed(() => { // eslint-disable-line vue/return-in-computed-property
   for (const name in badgeColorEnum) {
     if (settings[name] !== optionsDefaults[name]) {

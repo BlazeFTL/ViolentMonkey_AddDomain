@@ -12,8 +12,9 @@ import { isGmStorageGranted } from '@/common/script';
 import pluginEvents from '../plugin/events';
 import broadcast from './broadcast';
 import {
-  aliveScripts, getDefaultCustom, getNameURI, inferScriptProps, newScript, parseMeta,
-  removedScripts, scriptMap, scriptSiteVisited,
+  aliveScripts, expandMatchShorthand, getDefaultCustom, getNameURI, inferScriptProps,
+  insertMatchLine, newScript, parseMeta, removedScripts, scriptMap, scriptSiteVisited,
+  wrapMatchPattern,
 } from './script';
 import { testBlacklist, testerBatch, testScript } from './tester';
 import { getImageData } from './icon';
@@ -21,7 +22,7 @@ import { addOwnCommands, addPublicCommands, commands, resolveInit } from './init
 import { installedOver, NEW_INSTALL } from './on-installed';
 import patchDB from './patch-db';
 import { permissionDownloads } from './permissions';
-import { initOptions, kVersion, setOption } from './options';
+import { getOption, initOptions, kVersion, setOption } from './options';
 import sessionData, { flushSession, kScriptSizes, scriptSizes } from './session-data';
 import storage, {
   S_CACHE, S_CODE, S_REQUIRE, S_SCRIPT, S_VALUE,
@@ -75,6 +76,43 @@ addOwnCommands({
       items: scripts.map(script => ({ script, code: codeMap[script.props.id] })),
       values: values ? await storage[S_VALUE].getMulti(ids) : undefined,
     };
+  },
+  /**
+   * Adds a single fully-qualified `@match` pattern for a script. Depending on the
+   * `addMatchTarget` option this either inserts a new `// @match` line into the
+   * script's code (right after the last existing one, same as before), or appends to
+   * the script's own `custom.match` list in Script Settings, leaving the code
+   * untouched so an `@updateURL`/`@downloadURL` auto-update won't wipe it out.
+   * `pattern` may be a bare domain; it's completed via `wrapMatchPattern`.
+   * @return {Promise<{ duplicate: boolean, pattern: string } | (ReturnType<typeof parseScript> & { pattern: string })>}
+   */
+  async AddScriptMatch({ id, pattern }) {
+    const wrapped = wrapMatchPattern(pattern);
+    if (!wrapped) throw i18n('msgInvalidScript');
+    const script = getScriptById(id);
+    const setting = getOption('addMatchTarget');
+    const toSettings = setting === 'settings'
+      || (setting === 'auto' && !!getScriptUpdateUrl(script));
+    if (toSettings) {
+      const list = script.custom.match || [];
+      if (list.includes(wrapped)) return { duplicate: true, pattern: wrapped };
+      await updateScriptInfo(id, {
+        custom: { match: [...list, wrapped] },
+        props: { lastModified: Date.now() },
+      });
+      return { pattern: wrapped };
+    }
+    const code = await storage[S_CODE].getOne(id);
+    const result = insertMatchLine(code, wrapped);
+    if (!result.added) return { duplicate: result.duplicate, pattern: wrapped };
+    const res = await parseScript({
+      id,
+      code: result.code,
+      bumpDate: true,
+      message: '', // shown as a toast by the caller instead of the easily-truncated row text
+    });
+    res.pattern = wrapped;
+    return res;
   },
   /** @return {Promise<string>} */
   GetScriptCode(id) {
@@ -622,6 +660,9 @@ function parseMetaWithErrors(src) {
  * }>}
  */
 export async function parseScript(src) {
+  if (src.code != null && !src.meta) {
+    src.code = expandMatchShorthand(src.code);
+  }
   const { meta, errors } = src.meta ? src : parseMetaWithErrors(src);
   if (!meta.name) throw `${i18n('msgInvalidScript')}\n${i18n('labelNoName')}`;
   const update = {

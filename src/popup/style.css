@@ -360,8 +360,15 @@ footer {
   }
 }
 
-.excludes-menu {
+.excludes-menu,
+.add-match-menu {
   padding: .25rem .5rem .25rem $leftPaneWidth;
+  .add-match-note {
+    padding: .3rem .5rem;
+    border-radius: 2px;
+    background: hsl(0, 100%, 95%);
+    color: #c00;
+  }
   button {
     text-align: left;
     max-width: 100%;

@@ -35,6 +35,10 @@ export default {
   [kGmCookieHttpOnly]: false,
   [kGmDownloadViaApi]: false,
   [kPageMenuCommands]: false,
+  /** Show the "Add domain to @match" (+) button in the popup script list. */
+  showAddMatchBtn: false,
+  /** Where AddScriptMatch writes a new domain: 'code' | 'settings' | 'auto'. */
+  addMatchTarget: 'code',
   autoUpdate: 1, // days, 0 = disable
   // ignoreGrant: false,
   lastUpdate: 0,
