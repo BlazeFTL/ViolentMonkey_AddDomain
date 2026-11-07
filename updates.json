@@ -1,0 +1,13 @@
+{
+  "addons": {
+    "{aecec67f-0d10-4fa7-b7c7-609a2db280cf}": {
+      "updates": [
+        {
+          "version": "2.49.6.4032",
+          "update_link": "https://github.com/BlazeFTL/ViolentMonkey_AddDomain/releases/download/V2.49.6-Beta/ViolentMonkey_AddDomain-V2.49.6.4032.xpi",
+          "update_hash": "sha256:75b837b13d82e6d47a7d4c9eda9058367348161936412e7287c405c9547341a5"
+        }
+      ]
+    }
+  }
+}
