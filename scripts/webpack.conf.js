@@ -94,6 +94,10 @@ const buildConfig = (page, entry, globalsScope, wrap, init) => {
     '__.WEB': [pgInjectedWeb, pgZipWorker].includes(page),
   };
   const config = (entry ? getBaseConfig : getPageConfig)(page);
+  if (page === pgZipWorker) {
+    // Drop async leftovers in fflate as we use sync methods inside a dedicated Worker.
+    vars['typeof queueMicrotask'] = vars['typeof setTimeout'] = 'undefined';
+  }
   config.plugins.push(new webpack.DefinePlugin(vars));
   if (entry) config.entry = { [page]: entry };
   if (init) init(config);
@@ -124,7 +128,7 @@ module.exports = [
 
   MV3 && buildConfig(pgSW, './src/background/sw', GLOBALS.common, ownWrappers, (config) => {
     config.plugins.push(
-      new webpack.NormalModuleReplacementPlugin(/\/common\/tld$/, (r) => { r.request += '-mv3'; }),
+      new webpack.NormalModuleReplacementPlugin(/\/tld-impl$/, (r) => { r.request += '-mv3'; }),
     );
   }),
 
