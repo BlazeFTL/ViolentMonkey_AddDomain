@@ -1,8 +1,7 @@
 <template>
   <div class="tab-about mb-2c">
-    <h1 class="mt-0 mr-1c">
-      <span v-text="name"></span>
-      <small v-text="`v${version}`"></small>
+    <h1 class="mt-0">
+      <VmVersion/>
     </h1>
     <p v-text="i18n('extDescription')"></p>
     <div>
@@ -25,9 +24,8 @@
 import { i18n } from '@/common';
 import { VM_HOME } from '@/common/consts';
 import { EXTERNAL_LINK_PROPS } from '@/common/ui';
+import VmVersion from '@/common/ui/vm-version.vue';
 
-const name = extensionManifest.name;
-const version = __.VM_VER;
 const language = browser.i18n.getUILanguage();
 const GITHUB = 'https://github.com/violentmonkey/violentmonkey/';
 const LINKS = {
@@ -39,10 +37,12 @@ const LINKS = {
 </script>
 
 <style>
-.current {
-  color: green;
-  @media (prefers-color-scheme: dark) {
-    color: greenyellow;
+.tab-about {
+  .current {
+    color: green;
+    @media (prefers-color-scheme: dark) {
+      color: greenyellow;
+    }
   }
 }
 </style>
