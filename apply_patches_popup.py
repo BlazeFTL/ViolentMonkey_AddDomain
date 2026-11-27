@@ -442,7 +442,6 @@ html:root:root:root:root:root {
   --pm-muted: var(--fill-8);
   --pm-danger: #d93025;
   --pm-card-shadow: 0 1px 2px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .10);
-  --pm-surface: #eceef2;
   --pm-border: #b7bdc7;
   --pm-menu-shadow: var(--md-shadow-menu, 0 2px 6px rgba(0, 0, 0, .18), 0 6px 16px rgba(0, 0, 0, .14));
   --pm-line: var(--vm-line, #e5e7eb);
@@ -451,7 +450,6 @@ html:root:root:root:root:root {
 }
 @supports (color: color-mix(in srgb, red, blue)) {
   html:root:root:root:root:root {
-    --pm-surface: color-mix(in srgb, var(--fg) 8%, var(--bg));
     --pm-border: color-mix(in srgb, var(--fg) 28%, var(--bg));
   }
 }
@@ -628,8 +626,11 @@ html:root:root:root:root:root .page-popup .vm-search-empty {
 }
 
 /* ---------- find scripts card ---------- */
+html:root:root:root:root:root .page-popup .menu-buttons {
+  padding-bottom: 4px;
+}
 html:root:root:root:root:root .page-popup .menu-find-box {
-  padding: 8px 10px 10px;
+  padding: 0 10px 6px;
   border-top: 0;
   background: var(--bg);
 }
@@ -638,8 +639,8 @@ html:root:root:root:root:root .page-popup .menu-find {
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 8px 10px;
-  padding: 10px 12px;
+  gap: 6px 8px;
+  padding: 5px 8px;
   border: 1px solid var(--pm-border);
   border-radius: 14px;
   background: var(--bg);
@@ -652,10 +653,10 @@ html:root:root:root:root:root .page-popup .menu-find .find-label {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  padding: 6px 10px;
+  padding: 4px 8px;
   border-radius: 10px;
   color: var(--fg);
-  font-size: 12px;
+  font-size: 15px;
   text-align: center;
   text-decoration: none;
   cursor: pointer;
@@ -672,15 +673,15 @@ html:root:root:root:root:root .page-popup .menu-find .find-label:focus {
 }
 html:root:root:root:root:root .page-popup .menu-find .find-ico {
   flex: none;
-  width: 14px;
-  height: 14px;
+  width: 20px;
+  height: 20px;
   margin: 0;
   color: var(--fg);
 }
 html:root:root:root:root:root .page-popup .menu-find .find-ico g,
 html:root:root:root:root:root .page-popup .menu-find .find-ico path,
 html:root:root:root:root:root .page-popup .menu-find .find-ico circle {
-  stroke-width: 2.8;
+  stroke-width: 2.6;
 }
 html:root:root:root:root:root .page-popup .menu-find .find-sep {
   flex: none;
@@ -722,13 +723,12 @@ html:root:root:root:root:root .page-popup .menu-scripts {
 html:root:root:root:root:root .page-popup .menu-scripts > .menu-group {
   box-sizing: border-box;
   align-items: center;
-  height: 42px;
-  min-height: 42px;
+  height: 34px;
+  min-height: 34px;
   padding: 0 14px 0 14px;
   margin: 0;
   line-height: 1;
   border-top: 1px solid var(--pm-border);
-  border-bottom: 1px solid var(--pm-border);
 }
 html:root:root:root:root:root .page-popup .menu-scripts > .menu-group .icon-collapse {
   flex: 0 0 16px;
@@ -756,13 +756,13 @@ html:root:root:root:root:root .page-popup .menu-scripts > .menu-group [data-tota
   line-height: 1;
 }
 html:root:root:root:root:root .page-popup .menu-scripts.expand > .submenu {
-  padding: 8px 0 10px;
+  padding: 0 0 6px;
   border-top: 0;
-  background: var(--pm-surface);
+  background: var(--bg);
 }
 html:root:root:root:root:root .page-popup .menu-scripts .submenu > .script {
-  margin: 5px 10px;
-  border: 1px solid var(--pm-border);
+  margin: 4px 10px;
+  border: 1px solid var(--pm-line);
   box-shadow: var(--pm-card-shadow);
 }
 
