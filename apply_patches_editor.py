@@ -56,22 +56,17 @@ PATCHES = [
     </div>""",
         r"""    <div class="edit-header">
       <div class="edit-bar">
-        <div class="edit-name ellipsis">
-          <span class="subtle" v-if="script.config.removed" v-text="i18n('headerRecycleBin') + ' / '"/>
-          {{scriptName}}
-        </div>
-        <p v-if="frozen && nav === 'code'" v-text="i18n('readonly')" class="edit-ro"/>
-        <div v-else-if="browserWindows" class="edit-hint ellipsis">
-          <a :href="externalEditorInfoUrl"
-             v-bind="EXTERNAL_LINK_PROPS"
-             v-text="i18n('editHowToHint')"/>
-        </div>
-        <div class="edit-tools">
-          <a class="btn-ghost edit-tool" @click="clipboardCopy" tabindex="0"><IconCopy/></a>
-          <a class="btn-ghost edit-tool" @click="clipboardPaste" tabindex="0" v-if="!frozen"><IconPaste/></a>
-          <a class="btn-ghost edit-tool" :class="{ active: $code?.searchShown }" tabindex="0"
-             v-if="nav === 'code'" :title="i18n('labelSearch')"
-             @click="$code?.toggleSearch()"><IconSearch/></a>
+        <div class="edit-title">
+          <div class="edit-name ellipsis">
+            <span class="subtle" v-if="script.config.removed" v-text="i18n('headerRecycleBin') + ' / '"/>
+            {{scriptName}}
+          </div>
+          <p v-if="frozen && nav === 'code'" v-text="i18n('readonly')" class="edit-ro"/>
+          <div v-else-if="browserWindows" class="edit-hint ellipsis">
+            <a :href="externalEditorInfoUrl"
+               v-bind="EXTERNAL_LINK_PROPS"
+               v-text="i18n('editHowToHint')"/>
+          </div>
         </div>
         <div class="edit-actions">
           <button v-text="i18n('buttonSave')" @click="save"
@@ -82,19 +77,28 @@ PATCHES = [
           <button v-text="i18n('buttonClose')" @click="close(true)" title="Esc"/>
         </div>
       </div>
-      <nav>
-        <div
-          v-for="(label, navKey) in navItems" :key="navKey"
-          class="edit-nav-item" :class="{ active: nav === navKey, 'with-icon': navKey === EXTERNALS }"
-          @click="nav = navKey"
-        >{{
-          label
-        }}<template v-if="navKey === EXTERNALS">
-            <a @click.stop="onUpdateDeps"><icon name="refresh"/></a>
-            <span v-text="depsProgress" v-if="depsProgress"/>
-          </template>
+      <div class="edit-tabs">
+        <nav>
+          <div
+            v-for="(label, navKey) in navItems" :key="navKey"
+            class="edit-nav-item" :class="{ active: nav === navKey, 'with-icon': navKey === EXTERNALS }"
+            @click="nav = navKey"
+          >{{
+            label
+          }}<template v-if="navKey === EXTERNALS">
+              <a @click.stop="onUpdateDeps"><icon name="refresh"/></a>
+              <span v-text="depsProgress" v-if="depsProgress"/>
+            </template>
+          </div>
+        </nav>
+        <div class="edit-tools">
+          <a class="btn-ghost edit-tool" :class="{ active: $code?.searchShown }" tabindex="0"
+             v-if="nav === 'code'" :title="i18n('labelSearch')"
+             @click="$code?.toggleSearch()"><IconSearch/></a>
+          <a class="btn-ghost edit-tool" @click="clipboardCopy" tabindex="0"><IconCopy/></a>
+          <a class="btn-ghost edit-tool" @click="clipboardPaste" tabindex="0" v-if="!frozen"><IconPaste/></a>
         </div>
-      </nav>
+      </div>
     </div>""",
     ),
     (
@@ -422,6 +426,30 @@ import { GUTTER_NAME, installGutter } from './code-gutter';
       && !GUTTER_OPTS.includes(key)
       && !deepEqual(cm.getOption(key), val)) {""",
     ),
+    (
+        'src/options/views/edit/index.vue',
+        r"""  nullBool2string, sendCmdDirectly, trueJoin,
+} from '@/common';""",
+        r"""  nullBool2string, sendCmdDirectly,
+} from '@/common';""",
+    ),
+    (
+        'src/options/views/edit/index.vue',
+        r"""    ...(req || res) && { [EXTERNALS]: [req, res]::trueJoin('/') },""",
+        r"""    ...(req || res) && { [EXTERNALS]: i18n('editNavResources') },""",
+    ),
+    (
+        '_locales/en/messages.yml',
+        r"""editNavSettings:
+  description: Label of settings tab in script editor.
+""",
+        r"""editNavResources:
+  description: Label of the tab that lists @require and @resource files in script editor.
+  message: Resources
+editNavSettings:
+  description: Label of settings tab in script editor.
+""",
+    ),
 ]
 
 NEW_FILES = {
@@ -469,17 +497,27 @@ html:root:root:root:root:root .edit .edit-bar {
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 4px 8px;
-  min-height: 44px;
+  min-height: 40px;
 }
-html:root:root:root:root:root .edit .edit-bar > .edit-name {
+html:root:root:root:root:root .edit .edit-title {
+  display: flex;
+  flex: 1 1 150px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 38px;
+  padding: 0 2px;
+}
+html:root:root:root:root:root .edit .edit-title > .edit-name {
+  display: block;
   flex: 1;
   min-width: 0;
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   text-align: left;
 }
-html:root:root:root:root:root .edit .edit-bar > .edit-ro {
+html:root:root:root:root:root .edit .edit-title > .edit-ro {
   flex: none;
   margin: 0;
   padding: 5px 10px;
@@ -491,7 +529,7 @@ html:root:root:root:root:root .edit .edit-bar > .edit-ro {
   line-height: 1;
   text-transform: uppercase;
 }
-html:root:root:root:root:root .edit .edit-bar > .edit-hint {
+html:root:root:root:root:root .edit .edit-title > .edit-hint {
   flex: none;
   max-width: 40%;
   margin: 0;
@@ -501,18 +539,18 @@ html:root:root:root:root:root .edit .edit-tools {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   margin: 0;
 }
 html:root:root:root:root:root .edit .edit-tools .edit-tool {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   padding: 0;
   border: 1px solid var(--em-line);
-  border-radius: 12px;
+  border-radius: 11px;
   background: var(--bg);
   color: var(--fg);
   cursor: pointer;
@@ -536,7 +574,7 @@ html:root:root:root:root:root .edit .edit-tools .edit-tool:active {
 html:root:root:root:root:root .edit .edit-actions {
   display: flex;
   flex: none;
-  margin: 0;
+  margin: 0 0 0 auto;
 }
 html:root:root:root:root:root .edit .edit-actions > button {
   height: 36px;
@@ -575,15 +613,22 @@ html:root:root:root:root:root .edit .edit-actions > button.has-error {
 }
 
 /* ---------- tab chips ---------- */
-html:root:root:root:root:root .edit .edit-header > nav {
+html:root:root:root:root:root .edit .edit-tabs {
   display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0 10px;
+}
+html:root:root:root:root:root .edit .edit-tabs > nav {
+  display: flex;
+  flex: 1;
   flex-wrap: nowrap;
   gap: 6px;
-  padding: 4px 0 10px;
+  min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
 }
-html:root:root:root:root:root .edit .edit-header > nav::-webkit-scrollbar {
+html:root:root:root:root:root .edit .edit-tabs > nav::-webkit-scrollbar {
   display: none;
 }
 html:root:root:root:root:root .edit .edit-nav-item {
@@ -637,7 +682,7 @@ html:root:root:root:root:root .edit .edit-nav-item.with-icon > span {
   padding-right: 10px;
 }
 /* the "?" hotkey help tab is useless without a keyboard */
-html.touch:root:root:root:root .edit .edit-header > nav > .edit-nav-item:last-child {
+html.touch:root:root:root:root .edit .edit-tabs > nav > .edit-nav-item:last-child {
   display: none;
 }
 

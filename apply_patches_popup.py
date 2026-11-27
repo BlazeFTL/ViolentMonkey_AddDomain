@@ -124,11 +124,13 @@ menuSearchShowMore:
       </div>
     </div>
     <div class="menu menu-find-box" v-if="store.injectable" v-show="store.domain">
-      <div class="menu-find" :title="i18n('menuFindScripts')">
-        <a v-for="(url, text) in findUrls" :key="url" target="_blank" class="find-chip"
-           :href="url" :data-message="url.split('://')[1]" :tabIndex>
-          <IconSearch class="find-ico"/><span v-text="text"/>
+      <div class="menu-find">
+        <a class="find-label" target="_blank" :href="findUrls.GreasyFork"
+           :data-message="findUrls.GreasyFork.split('://')[1]" :tabIndex>
+          <IconSearch class="find-ico"/><span v-text="i18n('menuFindScripts')"/>
         </a>
+        <a v-for="(url, text) in findUrls" :key="url" target="_blank" class="find-chip"
+           :href="url" :data-message="url.split('://')[1]" :tabIndex v-text="text"/>
       </div>
     </div>
 """,
@@ -630,38 +632,33 @@ html:root:root:root:root:root .page-popup .menu-find-box {
 }
 html:root:root:root:root:root .page-popup .menu-find {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 8px 12px;
+  gap: 8px 10px;
+  padding: 10px 12px;
   border: 1px solid var(--pm-border);
   border-radius: 14px;
   background: var(--bg);
   box-shadow: var(--pm-card-shadow);
   cursor: default;
 }
-html:root:root:root:root:root .page-popup .menu-find .find-chip {
+html:root:root:root:root:root .page-popup .menu-find .find-label {
   display: inline-flex;
-  flex: 1 1 0;
+  flex: 0 1 auto;
   align-items: center;
-  align-self: center;
-  justify-content: center;
   gap: 8px;
-  box-sizing: border-box;
-  max-width: 190px;
-  height: 38px;
-  padding: 0 14px;
-  border: 1px solid var(--pm-border);
-  border-radius: 999px;
-  color: var(--fg);
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: 10px;
+  color: var(--fill-11);
   font-size: 13px;
-  font-weight: 700;
+  text-align: center;
   text-decoration: none;
-  white-space: nowrap;
   cursor: pointer;
 }
-html:root:root:root:root:root .page-popup .menu-find .find-chip:hover,
-html:root:root:root:root:root .page-popup .menu-find .find-chip:focus {
+html:root:root:root:root:root .page-popup .menu-find .find-label:hover,
+html:root:root:root:root:root .page-popup .menu-find .find-label:focus {
   background: var(--pm-hover);
   color: var(--fg);
 }
@@ -671,6 +668,29 @@ html:root:root:root:root:root .page-popup .menu-find .find-ico {
   height: 16px;
   margin: 0;
   color: var(--pm-muted);
+}
+html:root:root:root:root:root .page-popup .menu-find .find-chip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  align-self: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--pm-border);
+  border-radius: 999px;
+  color: var(--fg);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+html:root:root:root:root:root .page-popup .menu-find .find-chip:hover,
+html:root:root:root:root:root .page-popup .menu-find .find-chip:focus {
+  background: var(--pm-hover);
+  color: var(--fg);
 }
 
 /* ---------- group header ("Matched scripts") ---------- */
