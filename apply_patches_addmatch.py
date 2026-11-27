@@ -17,19 +17,14 @@ from pathlib import Path
 PATCHES = [
     (
         'src/common/util.js',
-        r"""export const i18n = memoize((name, args) => chrome.i18n.getMessage(name, args) || name);
-const HAS_BASE64_RE = /(^|;)\s*base64\s*(;|$)/;""",
-        r"""export const i18n = memoize((name, args) => chrome.i18n.getMessage(name, args) || name);
-/** Caps a string for one-line toasts/banners where there's no room for the full name. */
+        r"""const HAS_BASE64_RE = /(^|;)\s*base64\s*(;|$)/;
+const NON_ASCII_RE = /[\x80-\xFF]/;""",
+        r"""/** Caps a string for one-line toasts/banners where there's no room for the full name. */
 export function truncateText(text, max = 24) {
   return text && text.length > max ? `${text.slice(0, max - 1)}\u2026` : text || '';
 }
-const HAS_BASE64_RE = /(^|;)\s*base64\s*(;|$)/;""",
-    ),
-    (
-        'src/common/ui/index.js',
-        r"""import { createApp, h } from 'vue';""",
-        r"""import { createApp, h, reactive } from 'vue';""",
+const HAS_BASE64_RE = /(^|;)\s*base64\s*(;|$)/;
+const NON_ASCII_RE = /[\x80-\xFF]/;""",
     ),
     (
         'src/common/ui/style/style.css',
@@ -69,10 +64,10 @@ const HAS_BASE64_RE = /(^|;)\s*base64\s*(;|$)/;""",
     (
         'src/common/ui/index.js',
         r"""export function showMessage(message) {
-  const modal = Modal.show(() => h(Message, {""",
+  const modal = showModal(() => h(Message, {""",
         r"""export function showMessage(message) {
   message = reactive(message);
-  const modal = Modal.show(() => h(Message, {""",
+  const modal = showModal(() => h(Message, {""",
     ),
     (
         'src/common/ui/index.js',
@@ -294,8 +289,8 @@ function checkMetaItemErrors(parts, index, errors) {""",
     ),
     (
         'src/background/utils/tabs.js',
-        r"""import { getDomain } from '@/common/tld';""",
-        r"""import { getDomain, getPublicSuffix } from '@/common/tld';""",
+        r"""import { getDomain } from './tld';""",
+        r"""import { getDomain, getPublicSuffix } from './tld';""",
     ),
     (
         'src/background/utils/tabs.js',
@@ -372,10 +367,10 @@ export async function initPopup() {
     ),
     (
         'src/popup/views/app.vue',
-        r"""            'extras-shown': extras === item,
+        r"""            'extras-shown': extras?.id === item.id,
             'excludes-shown': item.excludes,
           }""",
-        r"""            'extras-shown': extras === item,
+        r"""            'extras-shown': extras?.id === item.id,
             'excludes-shown': item.excludes,
             'add-match-shown': addMatchId === item.props.id,
           }""",
@@ -948,11 +943,11 @@ const msgTimers = new Map(); // per-script-id timer to auto-clear a transient sc
     (
         'src/popup/views/app.vue',
         r"""import {
-  getScriptHome, getScriptName, getScriptRunAt, getScriptSupportUrl, getScriptUpdateUrl, i18n, makePause,
+  getScriptHome, getScriptRunAt, getScriptSupportUrl, getScriptUpdateUrl, i18n, makePause,
   sendCmdDirectly, sendTabCmd,
 } from '@/common';""",
         r"""import {
-  getScriptHome, getScriptName, getScriptRunAt, getScriptSupportUrl, getScriptUpdateUrl, i18n, makePause,
+  getScriptHome, getScriptRunAt, getScriptSupportUrl, getScriptUpdateUrl, i18n, makePause,
   sendCmdDirectly, sendTabCmd, truncateText,
 } from '@/common';""",
     ),
@@ -965,8 +960,14 @@ const msgTimers = new Map(); // per-script-id timer to auto-clear a transient sc
     ),
     (
         'scripts/webpack-base.js',
-        r"""    minimizer: isProd ? [""",
-        r"""    minimizer: false ? [""",
+        r"""    minimizer: minimizer || [],""",
+        r"""    minimizer: [],""",
+    ),
+    (
+        'scripts/webpack-base.js',
+        r"""const minimizer = isProd && require('./webpack-minimizer');
+""",
+        r"""""",
     ),
     (
         'src/background/utils/tester.js',
