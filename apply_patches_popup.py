@@ -64,7 +64,7 @@ menuSearchShowMore:
         :data-message="i18n('menuSearchScripts')"
         :tabIndex
         @click.stop="toggleSearch">
-        <icon name="search"></icon>
+        <svg class="icon icon-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6.4"/><path d="M15 15l6 6"/></svg>
       </span>
 """,
     ),
@@ -98,8 +98,8 @@ menuSearchShowMore:
           enterkeyhint="search"
           @keydown.enter.prevent="commitSearch"
           @blur="commitSearch"/>
-        <a v-if="searchQuery" class="vm-search-x" tabindex="0"
-           @mousedown.prevent @click.stop="clearSearch"><IconX/></a>
+        <a class="vm-search-x" tabindex="0" @mousedown.prevent
+           @click.stop="searchQuery ? clearSearch() : closeSearch()"><IconX/></a>
       </div>
       <div class="vm-search-history" v-if="showHistory">
         <div class="vm-history-head">
@@ -124,11 +124,11 @@ menuSearchShowMore:
       </div>
     </div>
     <div class="menu menu-find-box" v-if="store.injectable" v-show="store.domain">
-      <div class="menu-find">
-        <icon name="search" class="find-ico"/>
-        <span class="find-label ellipsis" v-text="i18n('menuFindScripts')"/>
+      <div class="menu-find" :title="i18n('menuFindScripts')">
         <a v-for="(url, text) in findUrls" :key="url" target="_blank" class="find-chip"
-           :href="url" :data-message="url.split('://')[1]" :tabIndex v-text="text"/>
+           :href="url" :data-message="url.split('://')[1]" :tabIndex>
+          <IconSearch class="find-ico"/><span v-text="text"/>
+        </a>
       </div>
     </div>
 """,
@@ -268,9 +268,9 @@ const CMD_ICONS = [
   [/debug|log\b|logs\b|console|trace/i, IconBug],
   [/feedback|report|issue|contact|comment|chat|message/i, IconMessage],
   [/updat|upgrad|reload|refresh|restart|retry|sync/i, IconRefresh],
+  [/pick|select|inspect|element|choose|target|locate/i, IconCrosshair],
   [/copy|clipboard/i, IconCopy],
   [/save|export|download|backup|get\b/i, IconDownload],
-  [/pick|select|inspect|element|choose|target|locate/i, IconCrosshair],
   [/show|hide|toggle|view|visible|preview|display/i, IconEye],
   [/clear|reset|delete|remove|clean|purge|wipe/i, IconTrash],
   [/edit|rename|change|modify/i, IconPencil],
@@ -307,7 +307,12 @@ const extrasTitle = computed(() => {
     (
         'src/popup/views/app.vue',
         r"""    [`${i18n('menuFindScripts')} (GF)`]: `https://greasyfork.org/scripts/by-site/${query}`,""",
-        r"""    GF: `https://greasyfork.org/scripts/by-site/${query}`,""",
+        r"""    GreasyFork: `https://greasyfork.org/scripts/by-site/${query}`,""",
+    ),
+    (
+        'src/popup/views/app.vue',
+        r"""    OUJS: `https://openuserjs.org/?q=${query}`,""",
+        r"""    OpenUserJS: `https://openuserjs.org/?q=${query}`,""",
     ),
     # ---------- script: link icons ----------
     (
@@ -431,11 +436,19 @@ NEW_FILES = {
 html:root:root:root:root:root {
   --pm-muted: var(--fill-8);
   --pm-danger: #d93025;
-  --pm-card-shadow: var(--md-shadow-card, 0 1px 3px rgba(0, 0, 0, .10), 0 1px 2px rgba(0, 0, 0, .06));
+  --pm-card-shadow: 0 1px 2px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .10);
+  --pm-surface: #eceef2;
+  --pm-border: #b7bdc7;
   --pm-menu-shadow: var(--md-shadow-menu, 0 2px 6px rgba(0, 0, 0, .18), 0 6px 16px rgba(0, 0, 0, .14));
   --pm-line: var(--vm-line, #e5e7eb);
   --pm-hover: var(--md-state-hover, rgba(0, 0, 0, .06));
   --pm-press: var(--md-state-press, rgba(0, 0, 0, .12));
+}
+@supports (color: color-mix(in srgb, red, blue)) {
+  html:root:root:root:root:root {
+    --pm-surface: color-mix(in srgb, var(--fg) 8%, var(--bg));
+    --pm-border: color-mix(in srgb, var(--fg) 28%, var(--bg));
+  }
 }
 @media (prefers-color-scheme: dark) {
   html:root:root:root:root:root {
@@ -463,8 +476,11 @@ html:root:root:root:root:root .page-popup .menu-buttons .ext-name {
 html:root:root:root:root:root .page-popup .menu-buttons .menu-search-btn {
   border-radius: 10px;
 }
-html:root:root:root:root:root .page-popup .menu-buttons .menu-search-btn.active {
-  background: var(--pm-press);
+html:root:root:root:root:root .page-popup .menu-buttons .icon-search {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3.4;
+  stroke-linecap: butt;
 }
 
 /* ---------- search panel ---------- */
@@ -477,7 +493,7 @@ html:root:root:root:root:root .page-popup .vm-search-box {
   align-items: center;
   height: 44px;
   padding: 0 6px 0 14px;
-  border: 1px solid var(--pm-line);
+  border: 1px solid var(--pm-border);
   border-radius: 14px;
   background: var(--bg);
   box-shadow: var(--pm-card-shadow);
@@ -608,53 +624,53 @@ html:root:root:root:root:root .page-popup .vm-search-empty {
 
 /* ---------- find scripts card ---------- */
 html:root:root:root:root:root .page-popup .menu-find-box {
-  padding: 6px 10px 6px;
+  padding: 8px 10px 6px;
   border-top: 0;
   background: var(--bg);
 }
 html:root:root:root:root:root .page-popup .menu-find {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 46px;
-  padding: 0 8px 0 14px;
-  border: 1px solid var(--pm-line);
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--pm-border);
   border-radius: 14px;
   background: var(--bg);
   box-shadow: var(--pm-card-shadow);
   cursor: default;
 }
-html:root:root:root:root:root .page-popup .menu-find .find-ico {
-  flex: none;
-  width: 16px;
-  height: 16px;
-  margin: 0 2px 0 0;
-  color: var(--pm-muted);
-}
-html:root:root:root:root:root .page-popup .menu-find .find-label {
-  flex: 1;
-  min-width: 0;
-  font-size: 13px;
-  color: var(--fill-11);
-}
 html:root:root:root:root:root .page-popup .menu-find .find-chip {
   display: inline-flex;
-  flex: none;
+  flex: 1 1 0;
   align-items: center;
-  height: 32px;
-  padding: 0 13px;
-  border: 1px solid var(--pm-line);
+  align-self: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  max-width: 190px;
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--pm-border);
   border-radius: 999px;
   color: var(--fg);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
   text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
 }
 html:root:root:root:root:root .page-popup .menu-find .find-chip:hover,
 html:root:root:root:root:root .page-popup .menu-find .find-chip:focus {
   background: var(--pm-hover);
   color: var(--fg);
+}
+html:root:root:root:root:root .page-popup .menu-find .find-ico {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  color: var(--pm-muted);
 }
 
 /* ---------- group header ("Matched scripts") ---------- */
@@ -669,7 +685,7 @@ html:root:root:root:root:root .page-popup .menu-scripts > .menu-group {
   padding: 0 14px 0 14px;
   margin: 0;
   line-height: 1;
-  border-bottom: 1px solid var(--pm-line);
+  border-bottom: 1px solid var(--pm-border);
 }
 html:root:root:root:root:root .page-popup .menu-scripts > .menu-group .icon-collapse {
   flex: 0 0 16px;
@@ -688,16 +704,23 @@ html:root:root:root:root:root .page-popup .menu-scripts > .menu-group > .flex-au
 html:root:root:root:root:root .page-popup .menu-scripts > .menu-group [data-totals]::after {
   content: attr(data-totals);
   margin-left: auto;
-  padding: 3px 9px;
-  border: 1px solid var(--pm-line);
+  padding: 4px 10px;
   border-radius: 999px;
-  color: var(--fill-10);
-  font-size: 11px;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
 }
 html:root:root:root:root:root .page-popup .menu-scripts.expand > .submenu {
-  padding-top: 6px;
+  padding: 8px 0 10px;
+  border-top: 1px solid var(--pm-border);
+  background: var(--pm-surface);
+}
+html:root:root:root:root:root .page-popup .menu-scripts .submenu > .script {
+  margin: 5px 10px;
+  border: 1px solid var(--pm-border);
+  box-shadow: var(--pm-card-shadow);
 }
 
 /* ---------- script commands: tree ---------- */
@@ -838,7 +861,7 @@ html:root:root:root:root:root .page-popup .submenu-commands > details:not([open]
   min-height: 38px;
   margin: 0 4px 4px 0;
   padding: 0;
-  border: 1px solid var(--pm-line);
+  border: 1px solid var(--pm-border);
   border-radius: 12px;
 }
 html:root:root:root:root:root .page-popup .submenu-commands > details:not([open]) ~ .menu-item::before,
@@ -852,7 +875,7 @@ html:root:root:root:root:root .extras-menu {
   min-width: 220px;
   max-width: min(80vw, 320px);
   padding: 6px;
-  border: 1px solid var(--pm-line);
+  border: 1px solid var(--pm-border);
   border-radius: 16px;
   background: var(--bg);
   box-shadow: var(--pm-menu-shadow);
@@ -862,7 +885,7 @@ html:root:root:root:root:root .extras-menu > .extras-title {
   display: block;
   padding: 8px 12px 10px;
   margin: 0 0 4px;
-  border-bottom: 1px solid var(--pm-line);
+  border-bottom: 1px solid var(--pm-border);
   color: var(--pm-muted);
   font-size: 12px;
   font-weight: 700;

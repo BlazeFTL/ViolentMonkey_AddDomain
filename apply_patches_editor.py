@@ -232,15 +232,11 @@ import IconX from '~icons/tabler/x';
     ),
     (
         'src/common/ui/code.vue',
-        r"""import Tooltip from 'vueleton/lib/tooltip';
-""",
-        r"""""",
-    ),
-    (
-        'src/common/ui/code.vue',
         r"""const reroutedKeys = {};
 """,
         r"""const reroutedKeys = {};
+const GUTTER_OPTS = ['lineNumbers', 'foldGutter', 'gutters'];
+let disposeGutter;
 const stripColon = str => str.replace(/\s*[:\uFF1A]\s*$/, '');
 const phFind = stripColon(i18n('labelSearch'));
 const phReplace = stripColon(i18n('labelReplace'));
@@ -377,7 +373,54 @@ function getRealContent(text) {
   onActive(false);
   clearTimeout(selectAllTimer);
   document.removeEventListener('selectionchange', onSelectionChange);
+  disposeGutter?.();
 });""",
+    ),
+    (
+        'src/common/ui/code.vue',
+        r"""import Tooltip from 'vueleton/lib/tooltip';
+""",
+        r"""""",
+    ),
+    (
+        'src/common/ui/code.vue',
+        r"""import cmDefaults from './code-defaults';
+""",
+        r"""import cmDefaults from './code-defaults';
+import { GUTTER_NAME, installGutter } from './code-gutter';
+""",
+    ),
+    (
+        'src/common/ui/code.vue',
+        r"""    mode: props.mode || userOpts.mode || cmDefaults.mode,
+  };
+  const cmWrapper = $cmWrapper.value;
+""",
+        r"""    mode: props.mode || userOpts.mode || cmDefaults.mode,
+  };
+  // Line numbers and fold markers are drawn by code-gutter.js outside of the editable area
+  const gutterOpts = { numbers: opts.lineNumbers !== false, fold: !!opts.foldGutter };
+  if (gutterOpts.numbers || gutterOpts.fold) {
+    Object.assign(opts, { lineNumbers: false, foldGutter: false, gutters: [GUTTER_NAME] });
+  }
+  const cmWrapper = $cmWrapper.value;
+""",
+    ),
+    (
+        'src/common/ui/code.vue',
+        r"""  cm = CodeMirror(cmWrapper, opts);
+""",
+        r"""  cm = CodeMirror(cmWrapper, opts);
+  disposeGutter = installGutter(cm, gutterOpts);
+""",
+    ),
+    (
+        'src/common/ui/code.vue',
+        r"""      && !(key in internalOpts)
+      && !deepEqual(cm.getOption(key), val)) {""",
+        r"""      && !(key in internalOpts)
+      && !GUTTER_OPTS.includes(key)
+      && !deepEqual(cm.getOption(key), val)) {""",
     ),
 ]
 
@@ -386,10 +429,17 @@ NEW_FILES = {
  * Selectors use repeated :root so they win over edit/index.vue and code.vue styles. */
 
 html:root:root:root:root:root {
-  --em-line: var(--vm-line, #e5e7eb);
+  --em-line: #b7bdc7;
+  --em-surface: #eceef2;
   --em-hover: var(--md-state-hover, rgba(0, 0, 0, .06));
   --em-press: var(--md-state-press, rgba(0, 0, 0, .12));
   --em-danger: #d93025;
+}
+@supports (color: color-mix(in srgb, red, blue)) {
+  html:root:root:root:root:root {
+    --em-line: color-mix(in srgb, var(--fg) 28%, var(--bg));
+    --em-surface: color-mix(in srgb, var(--fg) 8%, var(--bg));
+  }
 }
 @media (prefers-color-scheme: dark) {
   html:root:root:root:root:root {
@@ -411,7 +461,7 @@ html:root:root:root:root:root .edit .edit-header {
   display: block;
   padding: 6px 10px 0;
   border-bottom: 1px solid var(--em-line);
-  background: var(--bg);
+  background: var(--em-surface);
 }
 html:root:root:root:root:root .edit .edit-bar {
   display: flex;
@@ -451,7 +501,7 @@ html:root:root:root:root:root .edit .edit-tools {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 2px;
+  gap: 6px;
   margin: 0;
 }
 html:root:root:root:root:root .edit .edit-tools .edit-tool {
@@ -461,9 +511,10 @@ html:root:root:root:root:root .edit .edit-tools .edit-tool {
   width: 36px;
   height: 36px;
   padding: 0;
-  border: 0;
+  border: 1px solid var(--em-line);
   border-radius: 12px;
-  color: var(--fill-12);
+  background: var(--bg);
+  color: var(--fg);
   cursor: pointer;
 }
 html:root:root:root:root:root .edit .edit-tools .edit-tool svg {
@@ -474,7 +525,11 @@ html:root:root:root:root:root .edit .edit-tools .edit-tool:hover,
 html:root:root:root:root:root .edit .edit-tools .edit-tool:focus {
   background: var(--em-hover);
 }
-html:root:root:root:root:root .edit .edit-tools .edit-tool.active,
+html:root:root:root:root:root .edit .edit-tools .edit-tool.active {
+  border-color: var(--fg);
+  background: var(--fg);
+  color: var(--bg);
+}
 html:root:root:root:root:root .edit .edit-tools .edit-tool:active {
   background: var(--em-press);
 }
@@ -513,7 +568,7 @@ html:root:root:root:root:root .edit .edit-actions > button:active:not(:disabled)
   background: var(--em-press);
 }
 html:root:root:root:root:root .edit .edit-actions > button:disabled {
-  opacity: .45;
+  opacity: .5;
 }
 html:root:root:root:root:root .edit .edit-actions > button.has-error {
   color: var(--em-danger);
@@ -552,8 +607,9 @@ html:root:root:root:root:root .edit .edit-nav-item:not(.active):hover {
   box-shadow: none;
 }
 html:root:root:root:root:root .edit .edit-nav-item.active {
-  border-color: var(--fill-7);
-  background: var(--fill-1);
+  border-color: var(--fg);
+  background: var(--fg);
+  color: var(--bg);
   box-shadow: none;
 }
 html:root:root:root:root:root .edit .edit-nav-item.with-icon {
@@ -570,7 +626,7 @@ html:root:root:root:root:root .edit .edit-nav-item.with-icon > a {
   border-radius: 50%;
 }
 html:root:root:root:root:root .edit .edit-nav-item.with-icon > a:hover {
-  background: var(--em-press);
+  background: rgba(128, 128, 128, .35);
 }
 html:root:root:root:root:root .edit .edit-nav-item.with-icon > a svg {
   width: 14px;
@@ -594,7 +650,7 @@ html:root:root:root:root:root .edit .editor-search {
   gap: 8px;
   padding: 8px 10px 10px;
   border-bottom: 1px solid var(--em-line);
-  background: var(--bg);
+  background: var(--em-surface);
   white-space: normal;
 }
 html:root:root:root:root:root .edit .editor-search .es-row {
@@ -740,6 +796,215 @@ html:root:root:root:root:root .edit .editor-search .es-line {
   field-sizing: fixed;
   font-size: 13px;
   text-align: center;
+}
+""",
+    'src/common/ui/code-gutter.js': r"""import CodeMirror from 'codemirror';
+import './code-gutter.css';
+
+export const GUTTER_NAME = 'vm-gutter';
+const FOLD_WIDTH = 26;
+const FOLD_IDLE = 600;
+const { Pos } = CodeMirror;
+
+/**
+ * Draws line numbers and fold markers OUTSIDE of CodeMirror's contenteditable area.
+ *
+ * CodeMirror's own gutter is made of elements inside every line, i.e. inside the editable host.
+ * Mobile keyboards (Gboard) copy, cut and "select all" from the host's flattened text,
+ * so the line numbers (and the line breaks around them) ended up in the clipboard.
+ * Here the gutter layer is a sibling of the lines, so the host contains nothing but code.
+ */
+export function installGutter(cm, { numbers = true, fold = true } = {}) {
+  const gutter = cm.display.gutters.querySelector(`.${GUTTER_NAME}`);
+  if (!gutter) return () => {};
+  const layer = document.createElement('div');
+  layer.className = 'vm-gutter-layer';
+  gutter.append(layer);
+  const items = [];
+  const foldable = new Map(); // line handle -> boolean
+  let rafId;
+  let foldTimer;
+  let digits = 0;
+
+  const finder = () => CodeMirror.fold?.auto;
+
+  function getFoldMark(line) {
+    for (const mark of cm.findMarks(Pos(line, 0), Pos(line + 1, 0))) {
+      if (mark.__isFold && mark.find()?.from.line === line) return mark;
+    }
+  }
+
+  function isFoldable(line) {
+    try {
+      const range = finder()?.(cm, Pos(line, 0));
+      return !!range && range.to.line - range.from.line >= 1;
+    } catch {
+      return false;
+    }
+  }
+
+  function createItem() {
+    const el = document.createElement('div');
+    el.className = 'vm-ln';
+    el.append(document.createElement('span'), document.createElement('span'));
+    el.firstChild.className = 'vm-num CodeMirror-linenumber';
+    el.lastChild.className = 'vm-fold';
+    layer.append(el);
+    return el;
+  }
+
+  function updateWidth() {
+    const count = Math.max(2, `${cm.lineCount()}`.length);
+    if (count === digits) return;
+    digits = count;
+    gutter.style.setProperty('--vm-digits', count);
+    cm.refresh();
+  }
+
+  function render() {
+    rafId = 0;
+    try {
+      updateWidth();
+      const base = layer.getBoundingClientRect().top;
+      const height = `${cm.defaultTextHeight()}px`;
+      const active = new Set(cm.listSelections().map(r => r.head.line));
+      let used = 0;
+      for (const view of cm.display.view) {
+        const node = view.node;
+        if (view.hidden || !node) continue;
+        const line = cm.getLineNumber(view.line);
+        if (line == null) continue;
+        const el = items[used] || (items[used] = createItem());
+        used += 1;
+        const [num, mark] = el.children;
+        el.style.display = '';
+        el.style.top = `${node.getBoundingClientRect().top - base}px`;
+        el.style.height = height;
+        el.style.lineHeight = height;
+        el.classList.toggle('active', active.has(line));
+        const n = numbers ? `${line + 1}` : '';
+        if (num.dataset.n !== n) num.dataset.n = n;
+        let state = '';
+        if (fold) {
+          if (getFoldMark(line)) state = 'folded';
+          else if (foldable.get(view.line)) state = 'open';
+        }
+        if (mark.dataset.state !== state) mark.dataset.state = state;
+      }
+      for (let i = used; i < items.length; i++) items[i].style.display = 'none';
+    } catch {/**/}
+  }
+
+  function schedule() {
+    if (!rafId) rafId = requestAnimationFrame(render);
+  }
+
+  /** Looks for foldable lines in the viewport in small slices to keep typing smooth */
+  function scanFolds() {
+    foldTimer = 0;
+    if (!fold || !finder()) return;
+    const started = performance.now();
+    let changed = false;
+    for (const view of cm.display.view) {
+      if (view.hidden || foldable.has(view.line)) continue;
+      const line = cm.getLineNumber(view.line);
+      if (line == null) continue;
+      foldable.set(view.line, isFoldable(line));
+      changed = true;
+      if (performance.now() - started > 12) {
+        foldTimer = setTimeout(scanFolds, 30);
+        break;
+      }
+    }
+    if (changed) schedule();
+  }
+
+  function scheduleScan(delay) {
+    clearTimeout(foldTimer);
+    foldTimer = setTimeout(scanFolds, delay);
+  }
+
+  function onUpdate() {
+    schedule();
+    if (fold) scheduleScan(50);
+  }
+
+  function onChange(_cm, change) {
+    if (fold) {
+      cm.eachLine(change.from.line, change.from.line + change.text.length, h => foldable.delete(h));
+      scheduleScan(FOLD_IDLE);
+    }
+  }
+
+  function onGutterClick(_cm, line, gutterClass, e) {
+    if (!fold || gutterClass !== GUTTER_NAME) return;
+    if (e.clientX < gutter.getBoundingClientRect().right - FOLD_WIDTH) return;
+    cm.foldCode(Pos(line, 0));
+    schedule();
+  }
+
+  cm.on('update', onUpdate);
+  cm.on('cursorActivity', schedule);
+  cm.on('change', onChange);
+  cm.on('gutterClick', onGutterClick);
+  schedule();
+  if (fold) scheduleScan(50);
+
+  return () => {
+    cm.off('update', onUpdate);
+    cm.off('cursorActivity', schedule);
+    cm.off('change', onChange);
+    cm.off('gutterClick', onGutterClick);
+    cancelAnimationFrame(rafId);
+    clearTimeout(foldTimer);
+    layer.remove();
+  };
+}
+""",
+    'src/common/ui/code-gutter.css': r"""/* See code-gutter.js: line numbers are drawn by CSS content from data attributes,
+ * so there is no text for the keyboard's copy / select all to pick up. */
+.CodeMirror .CodeMirror-gutter.vm-gutter {
+  width: calc(var(--vm-digits, 3) * 1ch + 8px + 26px);
+}
+.vm-gutter-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+.vm-ln {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: flex-end;
+  font: inherit;
+}
+.vm-ln > .vm-num {
+  min-width: 0;
+  padding: 0 4px 0 0;
+  text-align: right;
+}
+.vm-ln > .vm-num::before {
+  content: attr(data-n);
+}
+.vm-ln.active > .vm-num {
+  color: var(--fg, #444);
+}
+.vm-ln > .vm-fold {
+  flex: 0 0 26px;
+  text-align: center;
+  color: var(--fill-8, #888);
+  cursor: pointer;
+}
+.vm-ln > .vm-fold[data-state="open"]::before {
+  content: "\25BE";
+}
+.vm-ln > .vm-fold[data-state="folded"]::before {
+  content: "\25B8";
 }
 """,
 }
