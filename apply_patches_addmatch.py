@@ -27,11 +27,6 @@ const HAS_BASE64_RE = /(^|;)\s*base64\s*(;|$)/;
 const NON_ASCII_RE = /[\x80-\xFF]/;""",
     ),
     (
-        'src/common/ui/index.js',
-        r"""import { createApp, h } from 'vue';""",
-        r"""import { createApp, h, reactive } from 'vue';""",
-    ),
-    (
         'src/common/ui/style/style.css',
         r"""@media (max-width: 319px) {
   .hidden-xs {
@@ -69,10 +64,10 @@ const NON_ASCII_RE = /[\x80-\xFF]/;""",
     (
         'src/common/ui/index.js',
         r"""export function showMessage(message) {
-  const modal = Modal.show(() => h(Message, {""",
+  const modal = showModal(() => h(Message, {""",
         r"""export function showMessage(message) {
   message = reactive(message);
-  const modal = Modal.show(() => h(Message, {""",
+  const modal = showModal(() => h(Message, {""",
     ),
     (
         'src/common/ui/index.js',

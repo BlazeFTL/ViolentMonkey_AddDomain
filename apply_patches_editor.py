@@ -382,7 +382,7 @@ function getRealContent(text) {
     ),
     (
         'src/common/ui/code.vue',
-        r"""import Tooltip from 'vueleton/lib/tooltip';
+        r"""import Tooltip from '@/common/ui/tooltip';
 """,
         r"""""",
     ),
