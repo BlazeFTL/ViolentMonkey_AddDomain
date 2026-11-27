@@ -66,7 +66,7 @@ const getBaseConfig = (page) => /** @type {import('webpack/types').Configuration
         test: /\.m?[jt]sx?$/,
         loader: 'babel-loader',
         exclude: file => /node_modules/.test(file) &&
-          !/vueleton|@vue[/\\]shared|@usync|@violentmonkey/.test(file),
+          !/@vue[/\\]shared|@usync|@violentmonkey/.test(file),
       },
       // CSS including .module.css
       {
@@ -121,6 +121,7 @@ const getBaseConfig = (page) => /** @type {import('webpack/types').Configuration
         codemirror: {
           name: PUBLIC_LIB.slice(1) + '/codemirror',
           test: makePathTester([
+            'cm5-css-mode-mod',
             '/codemirror',
             '/src/common/ui/code.*css$',
           ]),
