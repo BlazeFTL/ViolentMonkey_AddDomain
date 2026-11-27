@@ -969,6 +969,12 @@ const msgTimers = new Map(); // per-script-id timer to auto-clear a transient sc
         r"""    minimizer: [],""",
     ),
     (
+        'scripts/webpack-base.js',
+        r"""const minimizer = isProd && require('./webpack-minimizer');
+""",
+        r"""""",
+    ),
+    (
         'src/background/utils/tester.js',
         r"""const RE_GLOB_HOST_SUFFIX = /\*[^.]*\.?$/;""",
         r"""const RE_GLOB_HOST_SUFFIX = /\*[^.]*\.?$/;

@@ -232,6 +232,12 @@ import IconX from '~icons/tabler/x';
     ),
     (
         'src/common/ui/code.vue',
+        r"""import Tooltip from 'vueleton/lib/tooltip';
+""",
+        r"""""",
+    ),
+    (
+        'src/common/ui/code.vue',
         r"""const reroutedKeys = {};
 """,
         r"""const reroutedKeys = {};
