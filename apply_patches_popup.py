@@ -129,8 +129,11 @@ menuSearchShowMore:
            :data-message="findUrls.GreasyFork.split('://')[1]" :tabIndex>
           <IconSearch class="find-ico"/><span v-text="i18n('menuFindScripts')"/>
         </a>
-        <a v-for="(url, text) in findUrls" :key="url" target="_blank" class="find-chip"
-           :href="url" :data-message="url.split('://')[1]" :tabIndex v-text="text"/>
+        <template v-for="(url, text, i) in findUrls" :key="url">
+          <span v-if="i" class="find-sep">/</span>
+          <a target="_blank" class="find-chip"
+             :href="url" :data-message="url.split('://')[1]" :tabIndex v-text="text"/>
+        </template>
       </div>
     </div>
 """,
@@ -440,6 +443,8 @@ html:root:root:root:root:root {
   --pm-danger: #d93025;
   --pm-card-shadow: 0 1px 2px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .10);
   --pm-surface: #eceef2;
+  --pm-head: #e0e3e9;
+  --pm-head-hover: #d6dae2;
   --pm-border: #b7bdc7;
   --pm-menu-shadow: var(--md-shadow-menu, 0 2px 6px rgba(0, 0, 0, .18), 0 6px 16px rgba(0, 0, 0, .14));
   --pm-line: var(--vm-line, #e5e7eb);
@@ -449,6 +454,8 @@ html:root:root:root:root:root {
 @supports (color: color-mix(in srgb, red, blue)) {
   html:root:root:root:root:root {
     --pm-surface: color-mix(in srgb, var(--fg) 8%, var(--bg));
+    --pm-head: color-mix(in srgb, var(--fg) 13%, var(--bg));
+    --pm-head-hover: color-mix(in srgb, var(--fg) 19%, var(--bg));
     --pm-border: color-mix(in srgb, var(--fg) 28%, var(--bg));
   }
 }
@@ -626,7 +633,7 @@ html:root:root:root:root:root .page-popup .vm-search-empty {
 
 /* ---------- find scripts card ---------- */
 html:root:root:root:root:root .page-popup .menu-find-box {
-  padding: 8px 10px 6px;
+  padding: 8px 10px 10px;
   border-top: 0;
   background: var(--bg);
 }
@@ -651,11 +658,16 @@ html:root:root:root:root:root .page-popup .menu-find .find-label {
   min-width: 0;
   padding: 6px 10px;
   border-radius: 10px;
-  color: var(--fill-11);
+  color: var(--fg);
   font-size: 13px;
   text-align: center;
   text-decoration: none;
   cursor: pointer;
+}
+html:root:root:root:root:root .page-popup .menu-find .find-label > span {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 html:root:root:root:root:root .page-popup .menu-find .find-label:hover,
 html:root:root:root:root:root .page-popup .menu-find .find-label:focus {
@@ -664,10 +676,24 @@ html:root:root:root:root:root .page-popup .menu-find .find-label:focus {
 }
 html:root:root:root:root:root .page-popup .menu-find .find-ico {
   flex: none;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   margin: 0;
-  color: var(--pm-muted);
+  color: var(--fg);
+}
+html:root:root:root:root:root .page-popup .menu-find .find-ico g,
+html:root:root:root:root:root .page-popup .menu-find .find-ico path,
+html:root:root:root:root:root .page-popup .menu-find .find-ico circle {
+  stroke-width: 2.8;
+}
+html:root:root:root:root:root .page-popup .menu-find .find-sep {
+  flex: none;
+  margin: 0 -4px;
+  color: var(--fill-10);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
 }
 html:root:root:root:root:root .page-popup .menu-find .find-chip {
   display: inline-flex;
@@ -700,25 +726,34 @@ html:root:root:root:root:root .page-popup .menu-scripts {
 html:root:root:root:root:root .page-popup .menu-scripts > .menu-group {
   box-sizing: border-box;
   align-items: center;
-  height: 42px;
-  min-height: 42px;
+  height: 44px;
+  min-height: 44px;
   padding: 0 14px 0 14px;
   margin: 0;
   line-height: 1;
+  border-top: 1px solid var(--pm-border);
   border-bottom: 1px solid var(--pm-border);
+  background: var(--pm-head);
+  color: var(--fg);
+}
+html:root:root:root:root:root .page-popup .menu-scripts > .menu-group:hover,
+html:root:root:root:root:root .page-popup .menu-scripts > .menu-group:focus {
+  background: var(--pm-head-hover);
+  color: var(--fg);
 }
 html:root:root:root:root:root .page-popup .menu-scripts > .menu-group .icon-collapse {
   flex: 0 0 16px;
   width: 16px;
   height: 16px;
   margin: 0 10px 0 0;
-  color: var(--pm-muted);
+  color: var(--fg);
 }
 html:root:root:root:root:root .page-popup .menu-scripts > .menu-group > .flex-auto {
   align-items: center;
   align-self: center;
   padding: 0;
   font-size: 14px;
+  font-weight: 700;
   line-height: 1.2;
 }
 html:root:root:root:root:root .page-popup .menu-scripts > .menu-group [data-totals]::after {
@@ -734,7 +769,7 @@ html:root:root:root:root:root .page-popup .menu-scripts > .menu-group [data-tota
 }
 html:root:root:root:root:root .page-popup .menu-scripts.expand > .submenu {
   padding: 8px 0 10px;
-  border-top: 1px solid var(--pm-border);
+  border-top: 0;
   background: var(--pm-surface);
 }
 html:root:root:root:root:root .page-popup .menu-scripts .submenu > .script {

@@ -5,7 +5,7 @@ Editor redesign for the Violentmonkey fork. Run after the other patches, from th
     python3 apply_patches_addmatch.py && python3 apply_patches_material.py \
       && python3 apply_patches_popup.py && python3 apply_patches_editor.py [repo_root]
 
-Adds: two-row header (actions + tab chips, so Close is always visible), search toggle that opens
+Adds: two-row header (title + search/copy/paste on top, tab chips + Save/Close below), search toggle that opens
 the find/replace panel under the header (match count, clear buttons), and Gboard fixes
 (copy without line numbers, multi-line paste, delete selection, select all).
 """
@@ -68,13 +68,12 @@ PATCHES = [
                v-text="i18n('editHowToHint')"/>
           </div>
         </div>
-        <div class="edit-actions">
-          <button v-text="i18n('buttonSave')" @click="save"
-                  v-show="canSave || !frozen" :disabled="!canSave"
-                  :class="{'has-error': $fe = fatal || errors}" :title="$fe"/>
-          <button v-text="i18n('buttonSaveClose')" @click="saveClose"
-                  v-show="canSave || !frozen" :disabled="!canSave"/>
-          <button v-text="i18n('buttonClose')" @click="close(true)" title="Esc"/>
+        <div class="edit-tools">
+          <a class="btn-ghost edit-tool" :class="{ active: $code?.searchShown }" tabindex="0"
+             v-if="nav === 'code'" :title="i18n('labelSearch')"
+             @click="$code?.toggleSearch()"><IconSearch/></a>
+          <a class="btn-ghost edit-tool" @click="clipboardCopy" tabindex="0"><IconCopy/></a>
+          <a class="btn-ghost edit-tool" @click="clipboardPaste" tabindex="0" v-if="!frozen"><IconPaste/></a>
         </div>
       </div>
       <div class="edit-tabs">
@@ -91,12 +90,13 @@ PATCHES = [
             </template>
           </div>
         </nav>
-        <div class="edit-tools">
-          <a class="btn-ghost edit-tool" :class="{ active: $code?.searchShown }" tabindex="0"
-             v-if="nav === 'code'" :title="i18n('labelSearch')"
-             @click="$code?.toggleSearch()"><IconSearch/></a>
-          <a class="btn-ghost edit-tool" @click="clipboardCopy" tabindex="0"><IconCopy/></a>
-          <a class="btn-ghost edit-tool" @click="clipboardPaste" tabindex="0" v-if="!frozen"><IconPaste/></a>
+        <div class="edit-actions">
+          <button v-text="i18n('buttonSave')" @click="save"
+                  v-show="canSave || !frozen" :disabled="!canSave"
+                  :class="{'has-error': $fe = fatal || errors}" :title="$fe"/>
+          <button v-text="i18n('buttonSaveClose')" @click="saveClose"
+                  v-show="canSave || !frozen" :disabled="!canSave"/>
+          <button v-text="i18n('buttonClose')" @click="close(true)" title="Esc"/>
         </div>
       </div>
     </div>""",
@@ -453,7 +453,7 @@ editNavSettings:
 ]
 
 NEW_FILES = {
-    'src/options/views/edit/modern.css': r"""/* Editor page redesign: two-row header (actions, then tab chips), find/replace panel under it.
+    'src/options/views/edit/modern.css': r"""/* Editor page redesign: two-row header (title + tools, then tab chips + actions), find/replace panel under it.
  * Selectors use repeated :root so they win over edit/index.vue and code.vue styles. */
 
 html:root:root:root:root:root {
@@ -494,14 +494,14 @@ html:root:root:root:root:root .edit .edit-header {
 html:root:root:root:root:root .edit .edit-bar {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: space-between;
-  gap: 4px 8px;
-  min-height: 40px;
+  gap: 8px;
+  min-height: 44px;
 }
 html:root:root:root:root:root .edit .edit-title {
   display: flex;
-  flex: 1 1 150px;
+  flex: 1 1 0;
   align-items: center;
   gap: 8px;
   min-width: 0;
@@ -575,6 +575,9 @@ html:root:root:root:root:root .edit .edit-actions {
   display: flex;
   flex: none;
   margin: 0 0 0 auto;
+}
+html:root:root:root:root:root .edit .edit-tabs > .edit-actions > button {
+  height: 34px;
 }
 html:root:root:root:root:root .edit .edit-actions > button {
   height: 36px;
