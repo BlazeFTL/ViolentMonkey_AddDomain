@@ -539,8 +539,8 @@ html:root:root:root:root:root .edit .edit-tools {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 4px;
-  margin: 0;
+  gap: 10px;
+  margin: 0 6px 0 0;
 }
 html:root:root:root:root:root .edit .edit-tools .edit-tool {
   display: flex;

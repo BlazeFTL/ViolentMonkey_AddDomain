@@ -443,8 +443,6 @@ html:root:root:root:root:root {
   --pm-danger: #d93025;
   --pm-card-shadow: 0 1px 2px rgba(0, 0, 0, .14), 0 2px 6px rgba(0, 0, 0, .10);
   --pm-surface: #eceef2;
-  --pm-head: #e0e3e9;
-  --pm-head-hover: #d6dae2;
   --pm-border: #b7bdc7;
   --pm-menu-shadow: var(--md-shadow-menu, 0 2px 6px rgba(0, 0, 0, .18), 0 6px 16px rgba(0, 0, 0, .14));
   --pm-line: var(--vm-line, #e5e7eb);
@@ -454,8 +452,6 @@ html:root:root:root:root:root {
 @supports (color: color-mix(in srgb, red, blue)) {
   html:root:root:root:root:root {
     --pm-surface: color-mix(in srgb, var(--fg) 8%, var(--bg));
-    --pm-head: color-mix(in srgb, var(--fg) 13%, var(--bg));
-    --pm-head-hover: color-mix(in srgb, var(--fg) 19%, var(--bg));
     --pm-border: color-mix(in srgb, var(--fg) 28%, var(--bg));
   }
 }
@@ -659,7 +655,7 @@ html:root:root:root:root:root .page-popup .menu-find .find-label {
   padding: 6px 10px;
   border-radius: 10px;
   color: var(--fg);
-  font-size: 13px;
+  font-size: 12px;
   text-align: center;
   text-decoration: none;
   cursor: pointer;
@@ -676,8 +672,8 @@ html:root:root:root:root:root .page-popup .menu-find .find-label:focus {
 }
 html:root:root:root:root:root .page-popup .menu-find .find-ico {
   flex: none;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   margin: 0;
   color: var(--fg);
 }
@@ -726,34 +722,26 @@ html:root:root:root:root:root .page-popup .menu-scripts {
 html:root:root:root:root:root .page-popup .menu-scripts > .menu-group {
   box-sizing: border-box;
   align-items: center;
-  height: 44px;
-  min-height: 44px;
+  height: 42px;
+  min-height: 42px;
   padding: 0 14px 0 14px;
   margin: 0;
   line-height: 1;
   border-top: 1px solid var(--pm-border);
   border-bottom: 1px solid var(--pm-border);
-  background: var(--pm-head);
-  color: var(--fg);
-}
-html:root:root:root:root:root .page-popup .menu-scripts > .menu-group:hover,
-html:root:root:root:root:root .page-popup .menu-scripts > .menu-group:focus {
-  background: var(--pm-head-hover);
-  color: var(--fg);
 }
 html:root:root:root:root:root .page-popup .menu-scripts > .menu-group .icon-collapse {
   flex: 0 0 16px;
   width: 16px;
   height: 16px;
   margin: 0 10px 0 0;
-  color: var(--fg);
+  color: var(--pm-muted);
 }
 html:root:root:root:root:root .page-popup .menu-scripts > .menu-group > .flex-auto {
   align-items: center;
   align-self: center;
   padding: 0;
   font-size: 14px;
-  font-weight: 700;
   line-height: 1.2;
 }
 html:root:root:root:root:root .page-popup .menu-scripts > .menu-group [data-totals]::after {
