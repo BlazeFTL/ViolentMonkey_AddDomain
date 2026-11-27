@@ -327,6 +327,21 @@ const extrasTitle = computed(() => {
         r"""    support && [support, i18n('menuFeedback'), IconMessage],
     home && [home, i18n('buttonHome'), IconHome],""",
     ),
+    # ---------- template: colon after group title ----------
+    (
+        'src/popup/views/app.vue',
+        r"""        <div class="flex-auto" v-text="scope.title" :data-totals="scope.totals" />""",
+        r"""        <div class="flex-auto" v-text="`${scope.title}:`" :data-totals="scope.totals" />""",
+    ),
+    # ---------- script: always count enabled scripts so the badge reads "enabled / total" ----------
+    (
+        'src/popup/views/app.vue',
+        r"""      numEnabled = numTotal = list.length;
+""",
+        r"""      numTotal = list.length;
+      numEnabled = list.filter(({ config: { enabled } }) => enabled).length;
+""",
+    ),
     # ---------- script: filter scripts by the search text ----------
     (
         'src/popup/views/app.vue',
@@ -656,7 +671,7 @@ html:root:root:root:root:root .page-popup .menu-find .find-label {
   padding: 4px 8px;
   border-radius: 10px;
   color: var(--fg);
-  font-size: 15px;
+  font-size: 14px;
   text-align: center;
   text-decoration: none;
   cursor: pointer;
@@ -673,8 +688,8 @@ html:root:root:root:root:root .page-popup .menu-find .find-label:focus {
 }
 html:root:root:root:root:root .page-popup .menu-find .find-ico {
   flex: none;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   margin: 0;
   color: var(--fg);
 }
@@ -725,10 +740,20 @@ html:root:root:root:root:root .page-popup .menu-scripts > .menu-group {
   align-items: center;
   height: 34px;
   min-height: 34px;
-  padding: 0 14px 0 14px;
+  padding: 0 12px 0 25px;
   margin: 0;
   line-height: 1;
-  border-top: 1px solid var(--pm-border);
+  border: 0;
+}
+html:root:root:root:root:root .page-popup .menu-scripts > .menu-group::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 12px;
+  left: 25px;
+  height: 1px;
+  background: var(--pm-border);
+  pointer-events: none;
 }
 html:root:root:root:root:root .page-popup .menu-scripts > .menu-group .icon-collapse {
   flex: 0 0 16px;
@@ -746,9 +771,14 @@ html:root:root:root:root:root .page-popup .menu-scripts > .menu-group > .flex-au
 }
 html:root:root:root:root:root .page-popup .menu-scripts > .menu-group [data-totals]::after {
   content: attr(data-totals);
+  flex: none;
+  box-sizing: border-box;
+  min-width: 34px;
   margin-left: auto;
   padding: 4px 10px;
   border-radius: 999px;
+  text-align: center;
+  white-space: nowrap;
   background: var(--fg);
   color: var(--bg);
   font-size: 12px;
